@@ -1,0 +1,8 @@
+[
+    {
+        "name": "超级AI井字棋 - 终极对决",
+        "url": "./games/tic_tac_toe_ai.html",
+        "description": "基于 Minimax 算法的完美AI井字棋游戏，玩家执X先手，AI执O后手，支持计分和重玩。",
+        "logo": ""
+    }
+]

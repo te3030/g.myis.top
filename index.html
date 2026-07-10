@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" id="favicon-svg" />
+    <title>MyIs - My Is Me</title>
+    <style>
+        /* ===== 样式（已合并选择器） ===== */
+        :root {
+            --bg-deep: #080c14;
+            --text-primary: #e0e8f0;
+            --header-bg: rgba(10, 14, 22, 0.85);
+            --header-border: rgba(255, 255, 255, 0.06);
+            --accent-0: #00c6ff;
+            --accent-1: #a855f7;
+            --accent-2: #00e8c8;
+            --accent-3: #f5a623;
+            --glow-0: rgba(0, 198, 255, 0.5);
+            --glow-1: rgba(168, 85, 247, 0.5);
+            --glow-2: rgba(0, 232, 200, 0.5);
+            --glow-3: rgba(245, 166, 35, 0.5);
+            --font-display: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --font-body: 'Inter', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --nav-height: 64px;
+            --nav-height-mobile: 50px;
+            --mouse-x: 0px;
+            --mouse-y: 0px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { font-size: 16px; height: 100%; overflow: hidden; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-overflow-scrolling: none;
+            touch-action: none;
+        }
+
+        #particles-canvas, #hex-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.85;
+        }
+        #hex-canvas { opacity: 0.35; }
+
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            height: var(--nav-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--header-border);
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            will-change: transform, opacity;
+        }
+        .header.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .logo-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900; font-size: 16px; color: #fff;
+            box-shadow: 0 0 16px rgba(0, 150, 255, 0.4);
+            transition: box-shadow 0.3s;
+        }
+        .logo-text {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #e0e8f0, #a0c8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            list-style: none;
+        }
+        .header-nav li a, .header-nav li button {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 18px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #bcc8d8;
+            text-decoration: none;
+            cursor: pointer;
+            background: transparent;
+            border: 1px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .header-nav li a:hover, .header-nav li button:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .lang-btn {
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            background: rgba(255, 255, 255, 0.04) !important;
+            font-weight: 600;
+            min-width: 44px;
+            text-align: center;
+        }
+
+        /* ---- 应用按钮 ---- */
+        .app-btn {
+            border: 1px solid rgba(0, 198, 255, 0.3) !important;
+            background: rgba(0, 198, 255, 0.08) !important;
+            font-weight: 600;
+            color: #88d8ff !important;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 14px !important;
+        }
+        .app-btn:hover {
+            background: rgba(0, 198, 255, 0.18) !important;
+            border-color: rgba(0, 198, 255, 0.6) !important;
+            color: #fff !important;
+            box-shadow: 0 0 20px rgba(0, 198, 255, 0.15);
+        }
+        .app-btn .app-icon { font-size: 1rem; line-height: 1; }
+        .app-btn .app-label { font-size: 0.8rem; }
+
+        /* ---- 随机按钮 ---- */
+        .random-btn {
+            border: 1px solid rgba(245, 166, 35, 0.3) !important;
+            background: rgba(245, 166, 35, 0.08) !important;
+            font-weight: 600;
+            color: #f5c88a !important;
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 14px !important;
+        }
+        .random-btn:hover {
+            background: rgba(245, 166, 35, 0.18) !important;
+            border-color: rgba(245, 166, 35, 0.6) !important;
+            color: #fff !important;
+            box-shadow: 0 0 20px rgba(245, 166, 35, 0.15);
+        }
+        .random-btn .rand-icon { font-size: 1rem; line-height: 1; }
+        .random-btn .rand-label { font-size: 0.8rem; }
+        .random-btn.visible { display: flex; }
+
+        @media (max-width: 600px) {
+            .app-btn .app-label, .random-btn .rand-label { display: none; }
+            .app-btn, .random-btn {
+                padding: 6px 10px !important;
+                min-width: 36px;
+                justify-content: center;
+            }
+        }
+
+        /* ===== 主容器 ===== */
+        .main-wrapper {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            will-change: transform;
+        }
+
+        .section-panel {
+            width: 100%; height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .main-glow {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(100px);
+            opacity: 0.35;
+            animation: breathe 6s ease-in-out infinite;
+            width: 60vw; height: 60vw;
+            max-width: 500px; max-height: 500px;
+            top: 50%; left: 50%;
+            transform: translate(calc(-50% + var(--mouse-x) * 0.03), calc(-50% + var(--mouse-y) * 0.03));
+        }
+        .secondary-glow {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(100px);
+            opacity: 0.25;
+            width: 30vw; height: 30vw;
+            max-width: 300px; max-height: 300px;
+            top: 30%; left: 25%;
+            transform: translate(calc(var(--mouse-x) * 0.05), calc(var(--mouse-y) * 0.05));
+        }
+        .section-0 .main-glow { background: var(--glow-0); }
+        .section-1 .main-glow { background: var(--glow-1); }
+        .section-2 .main-glow { background: var(--glow-2); }
+        .section-3 .main-glow { background: var(--glow-3); }
+
+        .geo-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1.5px solid;
+            pointer-events: none;
+            z-index: 0;
+            animation: rotateRing 25s linear infinite;
+            top: 50%; left: 50%;
+            transform: translate(calc(-50% + var(--mouse-x) * 0.06), calc(-50% + var(--mouse-y) * 0.06));
+            width: 50vmin; height: 50vmin;
+            max-width: 400px; max-height: 400px;
+        }
+        .section-0 .geo-ring { border-color: rgba(0, 198, 255, 0.3); }
+        .section-1 .geo-ring { border-color: rgba(168, 85, 247, 0.3); }
+        .section-2 .geo-ring { border-color: rgba(0, 232, 200, 0.3); }
+        .section-3 .geo-ring { border-color: rgba(245, 166, 35, 0.3); }
+
+        @keyframes rotateRing {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes breathe {
+            0%,100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        .section-content {
+            position: relative; z-index: 2;
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+        }
+        .section-tag {
+            display: inline-block;
+            font-size: 0.7rem; font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            padding: 4px 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 6vw, 4.5rem);
+            font-weight: 900;
+            letter-spacing: -1px;
+            line-height: 1.2;
+            margin-bottom: 8px;
+            text-shadow: 0 0 60px currentColor;
+        }
+        .section-0 .section-title { color: #e0f4ff; }
+        .section-1 .section-title { color: #f0e4ff; }
+        .section-2 .section-title { color: #e0fff8; }
+        .section-3 .section-title { color: #fff8e8; }
+        .section-subtitle {
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            color: #8899bb;
+            letter-spacing: 1px;
+            margin-top: 6px;
+        }
+
+        .footer-panel {
+            width: 100%; height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            background: radial-gradient(ellipse at center, #0f1119 0%, #06080e 50%, #020408 100%);
+        }
+        .footer-content {
+            position: relative; z-index: 2;
+            text-align: center;
+            padding: 20px;
+        }
+        .footer-links {
+            display: flex; flex-wrap: wrap;
+            gap: 12px; justify-content: center;
+            margin: 20px 0;
+            list-style: none;
+        }
+        .footer-links a {
+            padding: 8px 18px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #8899aa;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .footer-links a:hover { color: #fff; border-color: rgba(255, 255, 255, 0.4); }
+
+        .side-indicators {
+            position: fixed;
+            right: 12px; top: 50%;
+            transform: translateY(-50%);
+            z-index: 90;
+            display: flex; flex-direction: column;
+            gap: 12px;
+        }
+        .side-indicators .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.4s;
+            cursor: pointer;
+        }
+        .side-indicators .dot.active {
+            background: #fff;
+            box-shadow: 0 0 12px rgba(200, 220, 255, 0.7);
+            transform: scale(1.4);
+        }
+
+        /* ---- 原有模态框 ---- */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.35s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-box {
+            background: rgba(20, 24, 36, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 30px 24px;
+            max-width: 400px; width: 90%;
+            text-align: center;
+        }
+        .modal-close {
+            display: inline-block;
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+        }
+        #modalBody{
+            margin-top: 20px;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+
+        /* ===== 应用悬浮框样式 ===== */
+        .app-modal-overlay {
+            position: fixed; inset: 0;
+            z-index: 300;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease;
+            padding: 20px;
+        }
+        .app-modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .app-modal-container {
+            background: rgba(14, 18, 30, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            width: 100%; max-width: 1100px; max-height: 90vh;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+            transform: scale(0.96) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.1), opacity 0.3s ease;
+            opacity: 0;
+        }
+        .app-modal-overlay.active .app-modal-container {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .app-modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 28px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .app-modal-header h2 {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #e0e8f0;
+            letter-spacing: 0.3px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .app-modal-header h2 span { font-size: 1.4rem; }
+        .app-modal-close {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.04);
+            color: #8899bb;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex; align-items: center; justify-content: center;
+            line-height: 1;
+        }
+        .app-modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: rotate(90deg);
+        }
+
+        .app-tabs {
+            display: flex; gap: 4px;
+            padding: 12px 28px 0 28px;
+            flex-shrink: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .app-tabs::-webkit-scrollbar { display: none; }
+        .app-tab {
+            padding: 8px 20px;
+            border-radius: 20px 20px 0 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #8899bb;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            letter-spacing: 0.3px;
+        }
+        .app-tab:hover {
+            color: #c0d0e0;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .app-tab.active {
+            color: #fff;
+            border-bottom-color: #00c6ff;
+            background: rgba(0, 198, 255, 0.06);
+        }
+        .app-tab .tab-badge {
+            display: inline-block;
+            font-size: 0.6rem;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 0 8px;
+            margin-left: 6px;
+            color: #8899bb;
+        }
+        .app-tab.active .tab-badge {
+            background: rgba(0, 198, 255, 0.2);
+            color: #88d8ff;
+        }
+
+        .app-grid-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 28px 28px 28px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+        }
+        .app-grid-wrapper::-webkit-scrollbar { width: 4px; }
+        .app-grid-wrapper::-webkit-scrollbar-track { background: transparent; }
+        .app-grid-wrapper::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 4px;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .app-card {
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            padding: 20px 16px 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+            cursor: pointer;
+            position: relative;
+            min-height: 150px;
+        }
+        .app-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+        }
+        .app-card:active { transform: scale(0.97); }
+
+        .app-card .card-logo {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, #2a3a5a, #1a2a4a);
+            transition: transform 0.3s;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .app-card:hover .card-logo { transform: scale(1.05); }
+        .app-card .card-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .app-card .card-logo .logo-placeholder {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .app-card .card-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #e0e8f0;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .app-card .card-desc {
+            font-size: 0.78rem;
+            color: #8899bb;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
+            flex: 1;
+        }
+        .app-card .card-url {
+            font-size: 0.65rem;
+            color: #556677;
+            margin-top: 8px;
+            word-break: break-all;
+            opacity: 0.7;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .app-card .card-open-icon {
+            position: absolute;
+            top: 10px; right: 12px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.15);
+            transition: color 0.3s;
+        }
+        .app-card:hover .card-open-icon { color: rgba(255, 255, 255, 0.4); }
+
+        .app-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #556677;
+        }
+        .app-empty .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+        .app-empty .empty-text { font-size: 0.95rem; }
+
+        .app-loading {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #556677;
+        }
+        .app-loading .spinner {
+            display: inline-block;
+            width: 32px; height: 32px;
+            border: 3px solid rgba(255, 255, 255, 0.06);
+            border-top-color: #00c6ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 768px) {
+            .header {
+                height: var(--nav-height-mobile);
+                padding: 0 14px;
+            }
+            .logo-icon { width: 26px; height: 26px; font-size: 13px; }
+            .logo-text { font-size: 0.95rem; }
+            .header-nav li a, .header-nav li button {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+                border-radius: 14px;
+            }
+            .main-glow { max-width: 300px; max-height: 300px; opacity: 0.25; }
+            .secondary-glow { display: none; }
+            .geo-ring { max-width: 250px; max-height: 250px; border-width: 1px; }
+            .side-indicators { right: 8px; gap: 10px; }
+            .side-indicators .dot { width: 7px; height: 7px; }
+
+            .app-modal-container { max-height: 95vh; border-radius: 16px; }
+            .app-modal-header { padding: 14px 18px; }
+            .app-modal-header h2 { font-size: 1rem; }
+            .app-tabs { padding: 10px 16px 0 16px; }
+            .app-tab { padding: 6px 14px; font-size: 0.78rem; }
+            .app-grid-wrapper { padding: 14px 16px 20px 16px; }
+            .app-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+            .app-card { padding: 16px 12px 14px; min-height: 130px; }
+            .app-card .card-logo { width: 52px; height: 52px; font-size: 1.3rem; }
+            .app-card .card-name { font-size: 0.85rem; }
+            .app-card .card-desc { font-size: 0.72rem; }
+            .app-card .card-url { font-size: 0.6rem; }
+        }
+
+        @media (max-width: 480px) {
+            .header { padding: 0 10px; }
+            .logo-text { display: none; }
+            .header-nav { gap: 2px; }
+            .header-nav li a, .header-nav li button {
+                padding: 4px 8px;
+                font-size: 0.7rem;
+            }
+            .section-content { padding: 10px; }
+            .section-title { font-size: 2rem; }
+            .section-subtitle { font-size: 0.8rem; }
+            .footer-links a { padding: 6px 12px; font-size: 0.75rem; }
+            .side-indicators { right: 4px; gap: 8px; }
+            .side-indicators .dot { width: 6px; height: 6px; }
+            .header.hidden {
+                transform: none;
+                opacity: 1;
+                pointer-events: auto;
+            }
+            .floating-geo, .floating-dot, .floating-triangle, .pulse-dot-ring, .scan-line, .scan-line-h { display: none; }
+
+            .app-modal-overlay { padding: 8px; }
+            .app-modal-container { border-radius: 12px; max-height: 98vh; }
+            .app-modal-header { padding: 10px 14px; }
+            .app-modal-header h2 { font-size: 0.9rem; }
+            .app-modal-close { width: 30px; height: 30px; font-size: 1rem; }
+            .app-tabs { padding: 8px 12px 0 12px; gap: 2px; }
+            .app-tab { padding: 5px 10px; font-size: 0.7rem; }
+            .app-grid-wrapper { padding: 10px 12px 16px 12px; }
+            .app-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+            .app-card { padding: 14px 10px 12px; min-height: 110px; border-radius: 12px; }
+            .app-card .card-logo { width: 44px; height: 44px; font-size: 1.1rem; margin-bottom: 8px; }
+            .app-card .card-name { font-size: 0.78rem; }
+            .app-card .card-desc { font-size: 0.68rem; -webkit-line-clamp: 2; }
+            .app-card .card-url { font-size: 0.55rem; margin-top: 4px; }
+            .app-card .card-open-icon { display: none; }
+        }
+        @media (max-width: 380px) {
+            .app-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+            .app-card .card-logo { width: 38px; height: 38px; font-size: 0.9rem; }
+            .app-card .card-name { font-size: 0.7rem; }
+            .app-card .card-desc { font-size: 0.6rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 画布 ===== -->
+    <canvas id="particles-canvas"></canvas>
+    <canvas id="hex-canvas"></canvas>
+
+    <!-- ===== 顶部导航 ===== -->
+    <header class="header" id="header">
+        <a class="header-logo" id="headerLogo">
+            <img class="hx:mr-2 hx:hidden hx:dark:block" src="/images/logo.svg" alt="Dark Logo" height="20" width="20">
+            <!-- <span class="logo-icon">M</span> -->
+            <span class="logo-text">MyIs</span>
+        </a>
+        <nav>
+            <ul class="header-nav">
+                <li><a href="#" id="nav-blog" data-i18n="nav_blog">博客</a></li>
+                <li>
+                    <a href="https://r.g.myis.top/">Reference</a>
+                </li>
+                <li>
+                    <a href="https://ot.g.myis.top/">OmniTools</a>
+                </li>
+                <li>
+                    <a href="https://it.g.myis.top/">IT - TOOLS</a>
+                </li>
+                <li><a href="#" id="nav-about" data-i18n="nav_about">关于</a></li>
+                <li><a href="#" id="nav-contact" data-i18n="nav_contact">联系</a></li>
+                <!-- 应用按钮 -->
+                <li><button class="app-btn" id="appToggle"><span class="app-icon">📦</span> <span class="app-label" data-i18n="app_btn">应用</span></button></li>
+                <!-- 随机按钮（默认隐藏） -->
+                <li><button class="random-btn" id="randomViewBtn"><span class="rand-icon">🎲</span> <span class="rand-label" data-i18n="random_btn">随机</span></button></li>
+                <li><button class="lang-btn" id="langToggle"><span>🌐</span> <span id="langLabel">EN</span></button></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- ===== 侧边指示器 ===== -->
+    <div class="side-indicators" id="sideIndicators">
+        <span class="dot" data-index="0"></span>
+        <span class="dot" data-index="1"></span>
+        <span class="dot" data-index="2"></span>
+        <span class="dot" data-index="3"></span>
+        <span class="dot" data-index="4"></span>
+    </div>
+
+    <!-- ===== 主容器 ===== -->
+    <div class="main-wrapper" id="mainWrapper">
+        <section class="section-panel section-0" data-index="0">
+            <div class="main-glow"></div>
+            <div class="secondary-glow" style="background: rgba(0,180,255,0.4);"></div>
+            <div class="geo-ring"></div>
+            <div class="section-content">
+                <span class="section-tag" data-i18n="tag_0"></span>
+                <h1 class="section-title">My Is Me</h1>
+                <p class="section-subtitle" data-i18n="sub_0"></p>
+            </div>
+        </section>
+        <section class="section-panel section-1" data-index="1">
+            <div class="main-glow"></div>
+            <div class="secondary-glow" style="background: rgba(140,60,230,0.4);"></div>
+            <div class="geo-ring"></div>
+            <div class="section-content">
+                <span class="section-tag" data-i18n="tag_1"></span>
+                <h1 class="section-title">My is mine</h1>
+                <p class="section-subtitle" data-i18n="sub_1"></p>
+            </div>
+        </section>
+        <section class="section-panel section-2" data-index="2">
+            <div class="main-glow"></div>
+            <div class="secondary-glow" style="background: rgba(0,200,160,0.4);"></div>
+            <div class="geo-ring"></div>
+            <div class="section-content">
+                <span class="section-tag" data-i18n="tag_2"></span>
+                <h1 class="section-title">This Is Myis</h1>
+                <p class="section-subtitle" data-i18n="sub_2"></p>
+            </div>
+        </section>
+        <section class="section-panel section-3" data-index="3">
+            <div class="main-glow"></div>
+            <div class="secondary-glow" style="background: rgba(230,140,20,0.4);"></div>
+            <div class="geo-ring"></div>
+            <div class="section-content">
+                <span class="section-tag" data-i18n="tag_3"></span>
+                <h1 class="section-title">This is me.</h1>
+                <p class="section-subtitle" data-i18n="sub_3"></p>
+            </div>
+        </section>
+        <footer class="footer-panel" data-index="4">
+            <div class="footer-content">
+                <p data-i18n="friends_title">友情链接</p>
+                <ul class="footer-links">
+                    <li><a href="https://github.com/te3030" target="_blank">GitHub</a></li>
+                </ul>
+                <p><span>©</span> <span data-i18n="copyright">2024 MyIs. All Rights Reserved.</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ===== 原有模态框 ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h3 id="modalTitle"></h3>
+            <p id="modalBody"></p>
+            <button class="modal-close" id="modalClose" data-i18n="modal_close">关闭</button>
+        </div>
+    </div>
+
+    <!-- ===== 应用悬浮框 ===== -->
+    <div class="app-modal-overlay" id="appModalOverlay">
+        <div class="app-modal-container">
+            <div class="app-modal-header">
+                <h2><span>📦</span> <span data-i18n="app_title">应用</span></h2>
+                <button class="app-modal-close" id="appModalClose" aria-label="关闭">✕</button>
+            </div>
+            <div class="app-tabs" id="appTabs"></div>
+            <div class="app-grid-wrapper" id="appGridWrapper">
+                <div class="app-grid" id="appGrid">
+                    <div class="app-loading">
+                        <div class="spinner"></div>
+                        <div class="empty-text" data-i18n="app_loading">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ======================================================================
+            //  1. 国际化
+            // ======================================================================
+            const i18n = {
+                zh: {
+                    nav_blog: '博客',
+                    nav_about: '关于',
+                    nav_contact: '联系',
+                    tag_0: 'Identity',
+                    tag_1: 'Ownership',
+                    tag_2: 'Creation',
+                    tag_3: 'Authenticity',
+                    sub_0: '',
+                    sub_1: '',
+                    sub_2: '',
+                    sub_3: '',
+                    friends_title: '友情链接',
+                    copyright: '2026 MyIs. 保留所有权利。',
+                    modal_close: '关闭',
+                    modal_about_title: '关于 MyIs',
+                    modal_about_body: 'MyIs',
+                    modal_contact_title: '联系我们',
+                    modal_contact_body: '邮箱: blog@myis.top',
+                    app_btn: '应用',
+                    app_title: '应用中心',
+                    app_loading: '加载中...',
+                    app_empty: '暂无数据',
+                    random_btn: '随机',
+                },
+                en: {
+                    nav_blog: 'Blog',
+                    nav_about: 'About',
+                    nav_contact: 'Contact',
+                    tag_0: 'Identity',
+                    tag_1: 'Ownership',
+                    tag_2: 'Creation',
+                    tag_3: 'Authenticity',
+                    sub_0: '',
+                    sub_1: '',
+                    sub_2: '',
+                    sub_3: '',
+                    friends_title: 'Friends Link',
+                    copyright: '2026 MyIs. All Rights Reserved.',
+                    modal_close: 'Close',
+                    modal_about_title: 'About MyIs',
+                    modal_about_body: 'MyIs',
+                    modal_contact_title: 'Contact Us',
+                    modal_contact_body: 'Email: blog@myis.top',
+                    app_btn: 'Apps',
+                    app_title: 'App Center',
+                    app_loading: 'Loading...',
+                    app_empty: 'No data available',
+                    random_btn: 'Random',
+                }
+            };
+
+            const $ = id => document.getElementById(id);
+            const header = $('header');
+            const mainWrapper = $('mainWrapper');
+            const dots = document.querySelectorAll('.side-indicators .dot');
+            const langBtn = $('langToggle');
+            const langLabel = $('langLabel');
+            const modal = $('modalOverlay');
+            const modalTitle = $('modalTitle');
+            const modalBody = $('modalBody');
+            const particlesCanvas = $('particles-canvas');
+            const hexCanvas = $('hex-canvas');
+            const pCtx = particlesCanvas.getContext('2d');
+            const hCtx = hexCanvas.getContext('2d');
+
+            // ---- 应用悬浮框元素 ----
+            const appModalOverlay = $('appModalOverlay');
+            const appModalClose = $('appModalClose');
+            const appToggle = $('appToggle');
+            const appTabs = $('appTabs');
+            const appGrid = $('appGrid');
+            const appGridWrapper = $('appGridWrapper');
+
+            // ---- 随机按钮 ----
+            const randomBtn = $('randomViewBtn');
+            let viewData = null;
+
+            let currentLang = 'zh';
+            let currentAppTab = null;
+            let appDataMap = {};
+            let appSources = [];
+            let appDataLoaded = false;
+
+            // ---- 语言 ----
+            function setLang(lang) {
+                currentLang = lang;
+                langLabel.textContent = lang === 'zh' ? '中' : 'EN';
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.dataset.i18n;
+                    if (i18n[lang]?.[key]) el.textContent = i18n[lang][key];
+                });
+                try { localStorage.setItem('myis_lang', lang); } catch (_) {}
+            }
+            setLang(localStorage.getItem('myis_lang') || (navigator.language.startsWith('zh') ? 'zh' : 'en'));
+            langBtn.onclick = () => setLang(currentLang === 'zh' ? 'en' : 'zh');
+
+            // ======================================================================
+            //  2. 粒子 & 六边形 (原有)
+            // ======================================================================
+            let particles = [];
+
+            function initParticles() {
+                particles = [];
+                const count = window.innerWidth < 768 ? 60 : 100;
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: Math.random() * particlesCanvas.width,
+                        y: Math.random() * particlesCanvas.height,
+                        vx: (Math.random() - 0.5) * 0.4,
+                        vy: (Math.random() - 0.5) * 0.4,
+                        radius: Math.random() * 1.5 + 0.6,
+                        hue: 200 + Math.random() * 60,
+                    });
+                }
+            }
+
+            function resizeCanvases() {
+                particlesCanvas.width = window.innerWidth;
+                particlesCanvas.height = window.innerHeight;
+                hexCanvas.width = window.innerWidth;
+                hexCanvas.height = window.innerHeight;
+                initParticles();
+                drawHexGrid();
+            }
+
+            function drawHexGrid() {
+                hCtx.clearRect(0, 0, hexCanvas.width, hexCanvas.height);
+                const size = 30,
+                    w = size * 2,
+                    h = Math.sqrt(3) * size;
+                const cols = Math.ceil(hexCanvas.width / (w * 0.75)) + 1,
+                    rows = Math.ceil(hexCanvas.height / h) + 1;
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const ox = (r % 2) * w * 0.375;
+                        const cx = c * w * 0.75 + ox,
+                            cy = r * h;
+                        if (cx > -w && cx < hexCanvas.width + w && cy > -h && cy < hexCanvas.height + h) {
+                            hCtx.beginPath();
+                            for (let i = 0; i < 6; i++) {
+                                const angle = Math.PI / 3 * i - Math.PI / 6;
+                                const x = cx + size * Math.cos(angle),
+                                    y = cy + size * Math.sin(angle);
+                                i === 0 ? hCtx.moveTo(x, y) : hCtx.lineTo(x, y);
+                            }
+                            hCtx.closePath();
+                            hCtx.strokeStyle = 'rgba(255,255,255,0.03)';
+                            hCtx.stroke();
+                        }
+                    }
+                }
+            }
+
+            let mouseX = -1000,
+                mouseY = -1000;
+
+            function drawParticles() {
+                pCtx.clearRect(0, 0, particlesCanvas.width, particlesCanvas.height);
+                for (let p of particles) {
+                    if (mouseX > 0 && mouseY > 0) {
+                        const dx = mouseX - p.x,
+                            dy = mouseY - p.y,
+                            dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < 250 && dist > 1) {
+                            const force = 0.06;
+                            p.vx += (dx / dist) * force;
+                            p.vy += (dy / dist) * force;
+                        }
+                    }
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    if (p.x < -10) p.x = particlesCanvas.width + 10;
+                    if (p.x > particlesCanvas.width + 10) p.x = -10;
+                    if (p.y < -10) p.y = particlesCanvas.height + 10;
+                    if (p.y > particlesCanvas.height + 10) p.y = -10;
+                    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                    if (speed > 1.8) { p.vx = (p.vx / speed) * 1.8;
+                        p.vy = (p.vy / speed) * 1.8; }
+                    pCtx.beginPath();
+                    pCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    pCtx.fillStyle = `hsla(${p.hue},80%,70%,0.7)`;
+                    pCtx.fill();
+                }
+                requestAnimationFrame(drawParticles);
+            }
+            resizeCanvases();
+            drawParticles();
+            window.addEventListener('resize', resizeCanvases);
+
+            window.addEventListener('mousemove', e => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                const cx = window.innerWidth / 2,
+                    cy = window.innerHeight / 2;
+                document.documentElement.style.setProperty('--mouse-x', (e.clientX - cx) + 'px');
+                document.documentElement.style.setProperty('--mouse-y', (e.clientY - cy) + 'px');
+            });
+            window.addEventListener('mouseleave', () => {
+                mouseX = -1000;
+                mouseY = -1000;
+                document.documentElement.style.setProperty('--mouse-x', '0px');
+                document.documentElement.style.setProperty('--mouse-y', '0px');
+            });
+
+            // ======================================================================
+            //  3. 滚动控制 (原有)
+            // ======================================================================
+            let currentIndex = 0;
+            let isAnimating = false;
+            const totalPanels = 5;
+            let baseTranslateY = 0;
+            let touchStartY = 0,
+                touchCurrentY = 0,
+                isDragging = false;
+            let wheelDeltaAccum = 0,
+                wheelTimeout = null;
+
+            function setTranslateY(y, transition = false) {
+                mainWrapper.style.transition = transition ? 'transform 0.35s cubic-bezier(0.2,0,0.2,1)' : 'none';
+                mainWrapper.style.transform = `translateY(${y}px)`;
+            }
+
+            function goToIndex(index) {
+                if (index < 0 || index >= totalPanels) return;
+                currentIndex = index;
+                baseTranslateY = -index * window.innerHeight;
+                setTranslateY(baseTranslateY, true);
+                updateHeaderAndDots();
+                isAnimating = true;
+                setTimeout(() => { isAnimating = false; }, 400);
+            }
+
+            function updateHeaderAndDots() {
+                if (window.innerWidth > 480) {
+                    header.classList.toggle('hidden', currentIndex !== 0);
+                }
+                dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
+            }
+
+            window.addEventListener('touchstart', e => {
+                if (isAnimating || modal.classList.contains('active') || appModalOverlay.classList.contains('active'))
+                    return;
+                if (e.touches.length === 1) {
+                    touchStartY = e.touches[0].clientY;
+                    touchCurrentY = touchStartY;
+                    isDragging = true;
+                    baseTranslateY = -currentIndex * window.innerHeight;
+                    mainWrapper.style.transition = 'none';
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', e => {
+                if (!isDragging) return;
+                e.preventDefault();
+                touchCurrentY = e.touches[0].clientY;
+                let deltaY = touchCurrentY - touchStartY;
+                let newY = baseTranslateY + deltaY;
+                newY = Math.max(-(totalPanels - 1) * window.innerHeight, Math.min(0, newY));
+                mainWrapper.style.transform = `translateY(${newY}px)`;
+            }, { passive: false });
+
+            window.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                const deltaY = touchCurrentY - touchStartY;
+                const threshold = 60;
+                if (Math.abs(deltaY) > threshold) {
+                    if (deltaY > 0 && currentIndex > 0) goToIndex(currentIndex - 1);
+                    else if (deltaY < 0 && currentIndex < totalPanels - 1) goToIndex(currentIndex + 1);
+                    else goToIndex(currentIndex);
+                } else {
+                    goToIndex(currentIndex);
+                }
+            });
+
+            window.addEventListener('wheel', e => {
+                if (isAnimating || isDragging || appModalOverlay.classList.contains('active')) return;
+                e.preventDefault();
+                wheelDeltaAccum += e.deltaY;
+                const threshold = 120;
+                if (Math.abs(wheelDeltaAccum) >= threshold) {
+                    if (wheelDeltaAccum > 0 && currentIndex < totalPanels - 1) {
+                        goToIndex(currentIndex + 1);
+                    } else if (wheelDeltaAccum < 0 && currentIndex > 0) {
+                        goToIndex(currentIndex - 1);
+                    }
+                    wheelDeltaAccum = 0;
+                }
+                clearTimeout(wheelTimeout);
+                wheelTimeout = setTimeout(() => { wheelDeltaAccum = 0; }, 200);
+            }, { passive: false });
+
+            window.addEventListener('keydown', e => {
+                if (isAnimating || appModalOverlay.classList.contains('active')) return;
+                if (e.key === 'ArrowDown') goToIndex(Math.min(currentIndex + 1, totalPanels - 1));
+                else if (e.key === 'ArrowUp') goToIndex(Math.max(currentIndex - 1, 0));
+            });
+
+            dots.forEach(d => d.addEventListener('click', () => {
+                const idx = parseInt(d.dataset.index);
+                if (!isNaN(idx)) goToIndex(idx);
+            }));
+            $('headerLogo').addEventListener('click', e => { e.preventDefault();
+                goToIndex(0); });
+
+            // ---- 原有模态框 ----
+            function openModal(title, body) {
+                modalTitle.textContent = title;
+                modalBody.textContent = body;
+                modal.classList.add('active');
+            }
+            $('modalClose').onclick = () => modal.classList.remove('active');
+            $('nav-about').onclick = e => {
+                e.preventDefault();
+                openModal(i18n[currentLang].modal_about_title, i18n[currentLang].modal_about_body); 
+            };
+            $('nav-contact').onclick = e => {
+                e.preventDefault();
+                openModal(i18n[currentLang].modal_contact_title, i18n[currentLang].modal_contact_body); 
+            };
+            $('nav-blog').onclick = e => {
+                e.preventDefault();
+                // openModal('Blog', 'Coming soon');
+                window.open('https://blog.myis.top', '_blank');
+            };
+
+            goToIndex(0);
+
+            // ======================================================================
+            //  4. 应用悬浮框 —— 真实 fetch 加载
+            // ======================================================================
+
+            appSources = [
+                { id: 'tools', label: '工具', file: 'tools.json' },
+                { id: 'view', label: 'View', file: 'view.json' },
+                { id: 'game', label: '游戏', file: 'game.json' },
+            ];
+
+            function loadAppData() {
+                const fetchPromises = appSources.map(src =>
+                    fetch(src.file)
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status} - ${src.file}`);
+                        return res.json();
+                    })
+                    .then(data => ({ id: src.id, data: data }))
+                    .catch(err => {
+                        console.warn(`⚠️ 加载 ${src.file} 失败:`, err);
+                        return { id: src.id, data: [] };
+                    })
+                );
+
+                return Promise.all(fetchPromises).then(results => {
+                    const map = {};
+                    results.forEach(r => { map[r.id] = r.data; });
+                    appDataMap = map;
+                    appDataLoaded = true;
+                    return map;
+                });
+            }
+
+            function renderCards(data) {
+                if (!data || data.length === 0) {
+                    appGrid.innerHTML = `
+                        <div class="app-empty">
+                            <div class="empty-icon">📭</div>
+                            <div class="empty-text" data-i18n="app_empty">暂无数据</div>
+                        </div>
+                    `;
+                    document.querySelectorAll('[data-i18n]').forEach(el => {
+                        const key = el.dataset.i18n;
+                        if (i18n[currentLang]?.[key]) el.textContent = i18n[currentLang][key];
+                    });
+                    return;
+                }
+
+                let html = '';
+                for (const item of data) {
+                    const name = item.name || '未命名';
+                    const url = item.url || '#';
+                    const desc = item.description || '';
+                    const logo = item.logo || '';
+
+                    const initial = name.charAt(0).toUpperCase() || '?';
+
+                    let logoHtml = '';
+                    if (logo) {
+                        logoHtml =
+                            `<img src="${logo}" alt="${name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\\'logo-placeholder\\'>${initial}</span>'">`;
+                    } else {
+                        logoHtml = `<span class="logo-placeholder">${initial}</span>`;
+                    }
+
+                    html += `
+                        <a class="app-card" href="${url}" target="_blank" rel="noopener noreferrer">
+                            <span class="card-open-icon">↗</span>
+                            <div class="card-logo">${logoHtml}</div>
+                            <div class="card-name">${name}</div>
+                            <div class="card-desc">${desc}</div>
+                            <div class="card-url">${url.replace(/^https?:\/\//, '')}</div>
+                        </a>
+                    `;
+                }
+                appGrid.innerHTML = html;
+            }
+
+            function switchTab(tabId) {
+                if (currentAppTab === tabId) return;
+                currentAppTab = tabId;
+
+                document.querySelectorAll('.app-tab').forEach(el => {
+                    el.classList.toggle('active', el.dataset.tab === tabId);
+                });
+
+                const data = appDataMap[tabId] || [];
+                renderCards(data);
+                appGridWrapper.scrollTop = 0;
+            }
+
+            function renderTabs() {
+                let html = '';
+                for (const src of appSources) {
+                    const count = (appDataMap[src.id] || []).length;
+                    const active = src.id === appSources[0].id ? 'active' : '';
+                    html += `
+                        <button class="app-tab ${active}" data-tab="${src.id}">
+                            ${src.label}
+                            <span class="tab-badge">${count}</span>
+                        </button>
+                    `;
+                }
+                appTabs.innerHTML = html;
+
+                appTabs.querySelectorAll('.app-tab').forEach(el => {
+                    el.addEventListener('click', () => {
+                        const tabId = el.dataset.tab;
+                        switchTab(tabId);
+                    });
+                });
+
+                // 【修复】不再在此处设置 currentAppTab，由外部调用 switchTab 时设置
+            }
+
+            function openAppModal() {
+                if (appModalOverlay.classList.contains('active')) return;
+                appModalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                if (!appDataLoaded) {
+                    appGrid.innerHTML = `
+                        <div class="app-loading">
+                            <div class="spinner"></div>
+                            <div class="empty-text" data-i18n="app_loading">加载中...</div>
+                        </div>
+                    `;
+                    loadAppData().then(() => {
+                        renderTabs();
+                        // 强制切换到第一个标签（重置 currentAppTab 确保执行）
+                        currentAppTab = null;
+                        if (appSources.length > 0) {
+                            switchTab(appSources[0].id);
+                        }
+                        // 如果 view 数据已加载，显示随机按钮
+                        if (appDataMap['view'] && appDataMap['view'].length > 0) {
+                            viewData = appDataMap['view'];
+                            randomBtn.classList.add('visible');
+                        }
+                    });
+                } else {
+                    renderTabs();
+                    // 强制切换到第一个标签
+                    currentAppTab = null;
+                    if (appSources.length > 0) {
+                        switchTab(appSources[0].id);
+                    }
+                }
+            }
+
+            function closeAppModal() {
+                appModalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            appToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                openAppModal();
+            });
+
+            appModalClose.addEventListener('click', closeAppModal);
+
+            appModalOverlay.addEventListener('click', (e) => {
+                if (e.target === appModalOverlay) {
+                    closeAppModal();
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && appModalOverlay.classList.contains('active')) {
+                    closeAppModal();
+                }
+            });
+
+            // ======================================================================
+            //  5. 随机按钮 —— 独立加载 view.json
+            // ======================================================================
+
+            function loadViewJson() {
+                return fetch('view.json')
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status} - view.json`);
+                        return res.json();
+                    })
+                    .then(data => {
+                        if (Array.isArray(data) && data.length > 0) {
+                            viewData = data;
+                            randomBtn.classList.add('visible');
+                            console.log('✅ view.json 加载成功，共', data.length, '条数据，随机按钮已显示');
+                        } else {
+                            console.warn('⚠️ view.json 数据为空，随机按钮保持隐藏');
+                        }
+                        return data;
+                    })
+                    .catch(err => {
+                        console.error('❌ 加载 view.json 失败:', err);
+                        if (appDataLoaded && appDataMap['view'] && appDataMap['view'].length > 0) {
+                            viewData = appDataMap['view'];
+                            randomBtn.classList.add('visible');
+                            console.log('↻ 复用应用中心加载的 view 数据');
+                        }
+                    });
+            }
+
+            loadViewJson();
+
+            randomBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!viewData || viewData.length === 0) {
+                    alert('暂无 view 数据');
+                    return;
+                }
+                const validItems = viewData.filter(item => item.url && item.url.trim() !== '');
+                if (validItems.length === 0) {
+                    alert('没有可用的链接');
+                    return;
+                }
+                const randomIndex = Math.floor(Math.random() * validItems.length);
+                const chosen = validItems[randomIndex];
+                window.open(chosen.url, '_blank');
+            });
+
+            // ---- 语言切换刷新 ----
+            const origSetLang = setLang;
+            setLang = function(lang) {
+                origSetLang(lang);
+                if (appModalOverlay.classList.contains('active') && appDataLoaded) {
+                    document.querySelectorAll('[data-i18n]').forEach(el => {
+                        const key = el.dataset.i18n;
+                        if (i18n[lang]?.[key]) el.textContent = i18n[lang][key];
+                    });
+                    if (currentAppTab && appDataMap[currentAppTab]) {
+                        renderCards(appDataMap[currentAppTab]);
+                    }
+                }
+            };
+
+            console.log('✅ MyIs 已启动，所有数据均通过 fetch 加载。');
+        })();
+    </script>
+</body>
+</html>

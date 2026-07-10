@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 90 C20 60 10 35 10 30 A40 40 0 1 1 90 30 C90 35 80 60 50 90Z' fill='%23e74c3c'/%3E%3Ccircle cx='50' cy='30' r='12' fill='%23ffffff'/%3E%3C/svg%3E">
+  <title>经纬度查询 · 地图定位</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+    }
+    body {
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .card {
+      max-width: 1000px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 32px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08), 0 8px 16px rgba(0,0,0,0.06);
+      padding: 24px 28px 32px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    h1 small {
+      font-size: 15px;
+      font-weight: 400;
+      color: #64748b;
+      margin-left: 6px;
+    }
+    .config-area {
+      background: #f8fafc;
+      border-radius: 20px;
+      padding: 18px 20px;
+      margin-bottom: 22px;
+      border: 1px solid #e9edf2;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 16px;
+    }
+    .config-item {
+      flex: 1 1 180px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      padding: 0 12px 0 16px;
+      border-radius: 40px;
+      border: 1px solid #dce1e8;
+      transition: 0.15s;
+    }
+    .config-item:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .config-item label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #475569;
+      white-space: nowrap;
+    }
+    .config-item input {
+      border: none;
+      padding: 10px 6px 10px 4px;
+      font-size: 14px;
+      width: 100%;
+      background: transparent;
+      outline: none;
+      color: #0f172a;
+    }
+    .config-item input::placeholder {
+      color: #94a3b8;
+      font-weight: 300;
+      font-size: 13px;
+    }
+    .load-btn {
+      background: #2563eb;
+      border: none;
+      color: white;
+      padding: 10px 28px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.15s;
+      box-shadow: 0 4px 8px rgba(37,99,235,0.15);
+      white-space: nowrap;
+    }
+    .load-btn:hover {
+      background: #1d4ed8;
+      transform: scale(0.97);
+    }
+    .load-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .input-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: center;
+      background: #f8fafc;
+      padding: 18px 20px;
+      border-radius: 60px;
+      margin-bottom: 22px;
+      border: 1px solid #e9edf2;
+    }
+    .input-group {
+      flex: 3 1 280px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      padding: 0 12px 0 16px;
+      border-radius: 40px;
+      border: 1px solid #dce1e8;
+      transition: 0.15s;
+    }
+    .input-group:focus-within {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .input-group label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #475569;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+    .input-group input {
+      border: none;
+      padding: 12px 6px 12px 4px;
+      font-size: 15px;
+      width: 100%;
+      background: transparent;
+      outline: none;
+      color: #0f172a;
+      font-weight: 450;
+    }
+    .input-group input::placeholder {
+      color: #94a3b8;
+      font-weight: 300;
+      font-size: 14px;
+    }
+    .action-group {
+      display: flex;
+      flex: 1 1 auto;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: none;
+      background: white;
+      padding: 10px 22px;
+      border-radius: 40px;
+      font-weight: 500;
+      font-size: 15px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      border: 1px solid #dce1e8;
+      color: #1e293b;
+      transition: all 0.15s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .btn-primary {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: white;
+      box-shadow: 0 4px 8px rgba(37,99,235,0.15);
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      transform: scale(0.97);
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: #cbd5e1;
+    }
+    .btn-outline:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .btn-switch {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      min-width: 110px;
+      justify-content: center;
+    }
+    .btn-switch.active {
+      background: #1e293b;
+      border-color: #1e293b;
+      color: white;
+    }
+    .map-wrapper {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      height: 0;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #e6edf4;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+      border: 1px solid #e2e8f0;
+      margin-bottom: 16px;
+    }
+    .map-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 18px;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .map-placeholder span {
+      font-weight: 300;
+    }
+    #amap-container, #bmap-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: none;
+    }
+    #amap-container.active, #bmap-container.active {
+      display: block;
+    }
+    .info-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9fbfd;
+      padding: 12px 18px;
+      border-radius: 40px;
+      border: 1px solid #e9edf2;
+      margin-top: 4px;
+      gap: 10px;
+    }
+    .address-text {
+      font-size: 15px;
+      color: #1e293b;
+      background: white;
+      padding: 6px 18px;
+      border-radius: 40px;
+      border: 1px solid #e9edf2;
+      flex: 2 1 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .address-label {
+      font-weight: 500;
+      color: #475569;
+      margin-right: 4px;
+    }
+    .copy-tip {
+      font-size: 13px;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 4px 14px;
+      border-radius: 30px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: default;
+    }
+    .copy-tip span {
+      font-weight: 500;
+      color: #0f172a;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge {
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 13px;
+      padding: 4px 14px;
+      border-radius: 30px;
+      font-weight: 500;
+    }
+    .badge.baidu {
+      background: #fef9e7;
+      color: #b45309;
+    }
+    @media (max-width: 640px) {
+      .card { padding: 16px; }
+      .config-area { flex-direction: column; align-items: stretch; }
+      .config-item { flex: 1 1 auto; }
+      .load-btn { width: 100%; justify-content: center; }
+      .input-row { border-radius: 28px; padding: 14px 16px; flex-direction: column; align-items: stretch; }
+      .input-group { flex: 1 1 auto; }
+      .action-group { flex: 1 1 auto; justify-content: stretch; }
+      .btn { flex: 1; justify-content: center; }
+      .info-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+      .address-text { white-space: normal; }
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>🌐 经纬度定位 <small>高德 · 百度</small></h1>
+
+  <!-- 密钥配置区域 -->
+  <div class="config-area">
+    <div class="config-item">
+      <label>高德Key</label>
+      <input type="text" id="amapKeyInput" placeholder="请输入高德JS API Key" value="">
+    </div>
+    <div class="config-item">
+      <label>百度AK</label>
+      <input type="text" id="bmapAkInput" placeholder="请输入百度JS API AK" value="">
+    </div>
+    <button class="load-btn" id="loadMapBtn">🚀 加载地图</button>
+  </div>
+
+  <!-- 坐标输入与操作 -->
+  <div class="input-row">
+    <div class="input-group">
+      <label>经纬度</label>
+      <input type="text" id="coordInput" placeholder="纬度,经度 (例如 39.904989,116.405285)" value="39.904989,116.405285">
+    </div>
+    <div class="action-group">
+      <button class="btn btn-primary" id="locateBtn">📍 定位</button>
+      <button class="btn btn-outline" id="resetBtn">↺ 重置</button>
+    </div>
+  </div>
+
+  <!-- 地图切换按钮 -->
+  <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+    <button class="btn btn-switch active" id="switchAmap" data-map="amap">🗺️ 高德地图</button>
+    <button class="btn btn-switch" id="switchBmap" data-map="bmap">🗺️ 百度地图</button>
+  </div>
+
+  <!-- 地图容器 -->
+  <div class="map-wrapper">
+    <div class="map-placeholder" id="mapPlaceholder">
+      <span>🗺️</span>
+      <span>请先在上方填写密钥并点击“加载地图”</span>
+    </div>
+    <div id="amap-container"></div>
+    <div id="bmap-container"></div>
+  </div>
+
+  <!-- 信息栏 -->
+  <div class="info-bar">
+    <div class="address-text"><span class="address-label">📍 地址</span> <span id="addressContent">等待定位...</span></div>
+    <div class="status-badge">
+      <span class="badge" id="mapStatusBadge">未加载</span>
+      <span class="copy-tip">📋 <span id="coordDisplay">--, --</span></span>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // DOM 引用
+    const amapKeyInput = document.getElementById('amapKeyInput');
+    const bmapAkInput = document.getElementById('bmapAkInput');
+    const loadBtn = document.getElementById('loadMapBtn');
+    const coordInput = document.getElementById('coordInput');
+    const locateBtn = document.getElementById('locateBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const addressContent = document.getElementById('addressContent');
+    const coordDisplay = document.getElementById('coordDisplay');
+    const mapStatusBadge = document.getElementById('mapStatusBadge');
+    const mapPlaceholder = document.getElementById('mapPlaceholder');
+    const amapContainer = document.getElementById('amap-container');
+    const bmapContainer = document.getElementById('bmap-container');
+    const switchAmap = document.getElementById('switchAmap');
+    const switchBmap = document.getElementById('switchBmap');
+
+    // 地图实例
+    let amapInstance = null;
+    let bmapInstance = null;
+    let amapMarker = null;
+    let bmapMarker = null;
+    let amapGeocoder = null;
+    let bmapGeocoder = null;
+    let isAmapLoaded = false;
+    let isBMapLoaded = false;
+    let currentMapType = 'amap';
+    let loading = false;
+
+    // ----- 坐标解析 (自动纠正顺序，无提示) -----
+    function parseCoordinate(input) {
+      if (!input || input.trim() === '') return null;
+      let str = input.replace(/[，、\s]+/g, ',').replace(/,+/g, ',').trim();
+      let parts = str.split(',').map(s => s.trim()).filter(s => s !== '');
+      if (parts.length !== 2) {
+        alert('请输入两个数字，用逗号分隔 (例如: 39.904989,116.405285)');
+        return null;
+      }
+      let num1 = parseFloat(parts[0]);
+      let num2 = parseFloat(parts[1]);
+      if (isNaN(num1) || isNaN(num2)) {
+        alert('请输入有效的数字');
+        return null;
+      }
+      // 范围检查
+      const isLat1 = (num1 >= -90 && num1 <= 90);
+      const isLng1 = (num1 >= -180 && num1 <= 180);
+      const isLat2 = (num2 >= -90 && num2 <= 90);
+      const isLng2 = (num2 >= -180 && num2 <= 180);
+
+      // 优先假设第一个是纬度，第二个是经度
+      if (isLat1 && isLng2) {
+        return { lat: num1, lng: num2 };
+      }
+      // 如果第一个是经度，第二个是纬度，静默交换
+      if (isLng1 && isLat2) {
+        // 静默交换，不弹出提示
+        return { lat: num2, lng: num1 };
+      }
+      // 其他情况（如两个都是纬度或两个都是经度），尝试智能判断
+      if (isLat1 && isLat2) {
+        // 两个都在纬度范围，则默认第一个为纬度，第二个为经度（虽然经度不符合范围，但尝试使用）
+        if (num2 >= -180 && num2 <= 180) {
+          return { lat: num1, lng: num2 };
+        } else {
+          alert('经度值不在 -180~180 范围内');
+          return null;
+        }
+      }
+      if (isLng1 && isLng2) {
+        if (num1 >= -90 && num1 <= 90) {
+          return { lat: num1, lng: num2 };
+        } else {
+          alert('纬度值不在 -90~90 范围内');
+          return null;
+        }
+      }
+      alert('输入的经纬度范围不正确（纬度-90~90，经度-180~180）');
+      return null;
+    }
+
+    function getCoordInput() {
+      return parseCoordinate(coordInput.value);
+    }
+
+    function updateCoordDisplay(lat, lng) {
+      coordDisplay.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      if (document.activeElement !== coordInput) {
+        coordInput.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      }
+    }
+
+    function setStatus(text, isBaidu = false) {
+      mapStatusBadge.textContent = text;
+      mapStatusBadge.className = 'badge' + (isBaidu ? ' baidu' : '');
+    }
+
+    function switchMapContainer(type) {
+      if (type === 'amap') {
+        amapContainer.classList.add('active');
+        bmapContainer.classList.remove('active');
+        setStatus('高德', false);
+        switchAmap.classList.add('active');
+        switchBmap.classList.remove('active');
+      } else {
+        amapContainer.classList.remove('active');
+        bmapContainer.classList.add('active');
+        setStatus('百度', true);
+        switchBmap.classList.add('active');
+        switchAmap.classList.remove('active');
+      }
+      currentMapType = type;
+    }
+
+    function hidePlaceholder() {
+      mapPlaceholder.style.display = 'none';
+    }
+
+    function showPlaceholder() {
+      mapPlaceholder.style.display = 'flex';
+      amapContainer.classList.remove('active');
+      bmapContainer.classList.remove('active');
+      setStatus('未加载', false);
+    }
+
+    // ----- 高德定位 -----
+    function locateAmap(lat, lng) {
+      if (!amapInstance) return;
+      const position = [lng, lat];
+      if (amapMarker) {
+        amapMarker.setPosition(position);
+      } else {
+        amapMarker = new AMap.Marker({
+          position: position,
+          animation: 'AMAP_ANIMATION_DROP'
+        });
+        amapInstance.add(amapMarker);
+      }
+      amapInstance.setCenter(position);
+      amapInstance.setZoom(15);
+      if (amapGeocoder) {
+        amapGeocoder.getAddress(new AMap.LngLat(lng, lat), (status, result) => {
+          if (status === 'complete' && result.info === 'OK') {
+            addressContent.textContent = result.regeocode.formattedAddress || '未知地址';
+          } else {
+            addressContent.textContent = '地址解析失败，请检查网络或密钥';
+          }
+        });
+      } else {
+        addressContent.textContent = '逆地理编码未初始化';
+      }
+      updateCoordDisplay(lat, lng);
+    }
+
+    // ----- 百度定位 -----
+    function locateBmap(lat, lng) {
+      if (!bmapInstance || !isBMapLoaded) {
+        console.warn('百度未就绪');
+        return;
+      }
+      const point = new BMap.Point(lng, lat);
+      if (bmapMarker) {
+        bmapMarker.setPosition(point);
+      } else {
+        bmapMarker = new BMap.Marker(point);
+        bmapInstance.addOverlay(bmapMarker);
+        bmapMarker.setAnimation(BMAP_ANIMATION_DROP);
+      }
+      bmapInstance.centerAndZoom(point, 15);
+      bmapInstance.enableScrollWheelZoom(true);
+      if (bmapGeocoder) {
+        bmapGeocoder.getLocation(point, (rs) => {
+          if (rs && rs.address) {
+            addressContent.textContent = rs.address;
+          } else {
+            addressContent.textContent = '地址解析失败，请检查网络或密钥';
+          }
+        });
+      } else {
+        addressContent.textContent = '逆地理编码未初始化';
+      }
+      updateCoordDisplay(lat, lng);
+    }
+
+    function performLocate() {
+      const coord = getCoordInput();
+      if (!coord) return;
+      if (currentMapType === 'amap') {
+        if (!amapInstance) { alert('高德地图未加载，请先加载地图'); return; }
+        locateAmap(coord.lat, coord.lng);
+      } else {
+        if (!bmapInstance || !isBMapLoaded) { alert('百度地图未加载，请先加载地图'); return; }
+        locateBmap(coord.lat, coord.lng);
+      }
+    }
+
+    function resetToDefault() {
+      coordInput.value = '39.904989,116.405285';
+      const lat = 39.904989, lng = 116.405285;
+      if (currentMapType === 'amap' && amapInstance) {
+        locateAmap(lat, lng);
+      } else if (currentMapType === 'bmap' && bmapInstance && isBMapLoaded) {
+        locateBmap(lat, lng);
+      } else {
+        addressContent.textContent = '请加载地图';
+        updateCoordDisplay(lat, lng);
+      }
+    }
+
+    // ----- 加载地图 -----
+    function loadMaps() {
+      const amapKey = amapKeyInput.value.trim();
+      const bmapAk = bmapAkInput.value.trim();
+
+      if (!amapKey && !bmapAk) {
+        alert('请至少输入一个地图的密钥');
+        return;
+      }
+
+      if (loading) return;
+      loading = true;
+      loadBtn.disabled = true;
+      loadBtn.textContent = '加载中...';
+
+      isAmapLoaded = false;
+      isBMapLoaded = false;
+
+      if (amapInstance) {
+        amapInstance.destroy();
+        amapInstance = null;
+        amapMarker = null;
+        amapGeocoder = null;
+      }
+      if (bmapInstance) {
+        bmapInstance.destroy();
+        bmapInstance = null;
+        bmapMarker = null;
+        bmapGeocoder = null;
+      }
+      amapContainer.innerHTML = '';
+      bmapContainer.innerHTML = '';
+      amapContainer.classList.remove('active');
+      bmapContainer.classList.remove('active');
+      showPlaceholder();
+
+      let loadedCount = 0;
+      const total = (amapKey ? 1 : 0) + (bmapAk ? 1 : 0);
+
+      function onMapLoaded(type) {
+        loadedCount++;
+        if (loadedCount >= total) {
+          loading = false;
+          loadBtn.disabled = false;
+          loadBtn.textContent = '🚀 加载地图';
+          if (isAmapLoaded) {
+            switchMapContainer('amap');
+            const coord = getCoordInput();
+            if (coord) {
+              locateAmap(coord.lat, coord.lng);
+            } else {
+              const lat = 39.904989, lng = 116.405285;
+              locateAmap(lat, lng);
+            }
+          } else if (isBMapLoaded) {
+            switchMapContainer('bmap');
+            const coord = getCoordInput();
+            if (coord) {
+              locateBmap(coord.lat, coord.lng);
+            } else {
+              const lat = 39.904989, lng = 116.405285;
+              locateBmap(lat, lng);
+            }
+          } else {
+            showPlaceholder();
+            alert('地图加载失败，请检查密钥');
+          }
+          hidePlaceholder();
+        }
+      }
+
+      if (amapKey) {
+        const oldScript = document.querySelector('script[src*="webapi.amap.com/maps"]');
+        if (oldScript) oldScript.remove();
+
+        const script = document.createElement('script');
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${amapKey}&plugin=AMap.Geocoder`;
+        script.async = true;
+        script.onload = function() {
+          if (window.AMap) {
+            try {
+              amapInstance = new AMap.Map('amap-container', {
+                zoom: 14,
+                center: [116.405285, 39.904989],
+                viewMode: '2D',
+                resizeEnable: true
+              });
+              amapGeocoder = new AMap.Geocoder({ city: '全国' });
+              isAmapLoaded = true;
+              console.log('高德地图加载成功');
+            } catch (e) {
+              console.error('高德地图初始化失败', e);
+              alert('高德地图初始化失败，请检查Key是否正确');
+            }
+          } else {
+            alert('高德地图API加载失败，请检查Key');
+          }
+          onMapLoaded('amap');
+        };
+        script.onerror = function() {
+          alert('高德地图脚本加载失败，请检查网络或Key');
+          onMapLoaded('amap');
+        };
+        document.head.appendChild(script);
+      }
+
+      if (bmapAk) {
+        const oldScript = document.querySelector('script[src*="api.map.baidu.com/api"]');
+        if (oldScript) oldScript.remove();
+
+        window.onBMapReady = function() {
+          if (window.BMap) {
+            try {
+              bmapInstance = new BMap.Map('bmap-container');
+              const point = new BMap.Point(116.405285, 39.904989);
+              bmapInstance.centerAndZoom(point, 14);
+              bmapInstance.enableScrollWheelZoom(true);
+              bmapInstance.addControl(new BMap.NavigationControl());
+              bmapGeocoder = new BMap.Geocoder();
+              isBMapLoaded = true;
+              console.log('百度地图加载成功');
+            } catch (e) {
+              console.error('百度地图初始化失败', e);
+              alert('百度地图初始化失败，请检查AK是否正确');
+            }
+          } else {
+            alert('百度地图API加载失败，请检查AK');
+          }
+          onMapLoaded('bmap');
+        };
+
+        const script = document.createElement('script');
+        script.src = `https://api.map.baidu.com/api?v=3.0&ak=${bmapAk}&callback=onBMapReady`;
+        script.async = true;
+        script.onerror = function() {
+          alert('百度地图脚本加载失败，请检查网络或AK');
+          onMapLoaded('bmap');
+        };
+        document.head.appendChild(script);
+      }
+    }
+
+    // ----- 切换地图 -----
+    function switchToAmap() {
+      if (!isAmapLoaded) {
+        alert('高德地图未加载，请先加载地图');
+        return;
+      }
+      if (currentMapType === 'amap') return;
+      switchMapContainer('amap');
+      const coord = getCoordInput();
+      if (coord) {
+        locateAmap(coord.lat, coord.lng);
+      } else {
+        const lat = 39.904989, lng = 116.405285;
+        locateAmap(lat, lng);
+      }
+    }
+
+    function switchToBmap() {
+      if (!isBMapLoaded) {
+        alert('百度地图未加载，请先加载地图');
+        return;
+      }
+      if (currentMapType === 'bmap') return;
+      switchMapContainer('bmap');
+      const coord = getCoordInput();
+      if (coord) {
+        locateBmap(coord.lat, coord.lng);
+      } else {
+        const lat = 39.904989, lng = 116.405285;
+        locateBmap(lat, lng);
+      }
+    }
+
+    // ----- 事件绑定 -----
+    loadBtn.addEventListener('click', loadMaps);
+    locateBtn.addEventListener('click', performLocate);
+    resetBtn.addEventListener('click', resetToDefault);
+
+    switchAmap.addEventListener('click', switchToAmap);
+    switchBmap.addEventListener('click', switchToBmap);
+
+    coordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') performLocate();
+    });
+    amapKeyInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') loadMaps(); });
+    bmapAkInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') loadMaps(); });
+
+    // 初始状态
+    showPlaceholder();
+    addressContent.textContent = '请加载地图';
+    updateCoordDisplay(39.904989, 116.405285);
+    setStatus('未加载', false);
+  })();
+</script>
+</body>
+</html>

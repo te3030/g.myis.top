@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='10' y='10' width='80' height='80' rx='20' fill='%23e67e22'/%3E%3Ctext x='22' y='70' font-family='Arial, sans-serif' font-size='60' font-weight='bold' fill='%23ffffff'%3ET%3C/text%3E%3Ctext x='50' y='70' font-family='Arial, sans-serif' font-size='60' font-weight='bold' fill='%23ffffff' transform='rotate(180 72 50)'%3ET%3C/text%3E%3C/svg%3E">
+    <title>字母大小写转换工具</title>
+    <style>
+        /* ---------- 全局重置 & 字体 ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f6f8fc;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 2rem 1rem;
+            color: #1e293b;
+        }
+
+        /* ---------- 主容器 ---------- */
+        .app {
+            max-width: 820px;
+            width: 100%;
+            background: #ffffff;
+            border-radius: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.08), 0 8px 24px rgba(0, 0, 0, 0.02);
+            padding: 2.5rem 2.2rem 3rem;
+            transition: all 0.2s;
+            align-self: flex-start;
+        }
+
+        @media (max-width: 520px) {
+            .app {
+                padding: 1.8rem 1.2rem 2.2rem;
+                border-radius: 1.5rem;
+            }
+        }
+
+        /* ---------- 头部 ---------- */
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            -webkit-background-clip: text;
+            background-clip: text;
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 0.95rem;
+            font-weight: 400;
+            margin-top: 0.15rem;
+        }
+
+        /* ---------- 文本域 ---------- */
+        .input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-section textarea {
+            width: 100%;
+            min-height: 170px;
+            padding: 1.2rem 1.4rem;
+            font-size: 1rem;
+            line-height: 1.7;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            border: 2px solid #e9edf4;
+            border-radius: 1.2rem;
+            background: #fafcff;
+            resize: vertical;
+            transition: border 0.2s, box-shadow 0.2s;
+            color: #0f172a;
+            letter-spacing: 0.01em;
+        }
+
+        .input-section textarea:focus {
+            outline: none;
+            border-color: #7b8cff;
+            box-shadow: 0 0 0 4px rgba(123, 140, 255, 0.15);
+            background: #ffffff;
+        }
+
+        .input-section textarea::placeholder {
+            color: #abb5c9;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            letter-spacing: 0;
+        }
+
+        /* ---------- 统计栏 ---------- */
+        .stats {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin: 0.5rem 0 1.6rem 0;
+            padding: 0 0.2rem;
+        }
+
+        .stats .stat-item {
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+
+        .stats .stat-item .num {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1e293b;
+            font-variant-numeric: tabular-nums;
+            min-width: 2.2rem;
+        }
+
+        .stats .stat-item .label {
+            color: #94a3b8;
+            font-weight: 450;
+        }
+
+        /* ---------- 按钮网格 ---------- */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 2.2rem;
+        }
+
+        .btn {
+            padding: 0.8rem 0.2rem;
+            border: none;
+            border-radius: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: #f1f4fa;
+            color: #1e293b;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+            letter-spacing: 0.01em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            line-height: 1.2;
+            min-height: 50px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        .btn:active {
+            transform: translateY(0px);
+            box-shadow: none;
+        }
+
+        /* 各按钮颜色 */
+        .btn-upper {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+        .btn-upper:hover {
+            background: #c7d2fe;
+        }
+
+        .btn-lower {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .btn-lower:hover {
+            background: #b8e2fc;
+        }
+
+        .btn-reverse {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+        .btn-reverse:hover {
+            background: #fbcfe8;
+        }
+
+        .btn-capitalize {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .btn-capitalize:hover {
+            background: #a7f3d0;
+        }
+
+        .btn-toggle {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .btn-toggle:hover {
+            background: #fde68a;
+        }
+
+        .btn .icon {
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        /* ---------- 输出区域 ---------- */
+        .output-section {
+            margin-top: 0.4rem;
+        }
+
+        .output-section .output-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #475569;
+            margin-bottom: 0.5rem;
+        }
+
+        .output-section .output-label .copy-btn {
+            background: none;
+            border: none;
+            color: #7b8cff;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+            transition: background 0.15s;
+        }
+
+        .output-section .output-label .copy-btn:hover {
+            background: #f1f4ff;
+        }
+
+        .output-box {
+            background: #f8faff;
+            border: 2px solid #e9edf4;
+            border-radius: 1.2rem;
+            padding: 1.2rem 1.4rem;
+            min-height: 100px;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #0f172a;
+            white-space: pre-wrap;
+            word-break: break-word;
+            transition: border 0.2s;
+            letter-spacing: 0.01em;
+        }
+
+        .output-box:empty::before {
+            content: '转换后的文本将显示在这里…';
+            color: #b9c4da;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            letter-spacing: 0;
+        }
+
+        .output-box.has-content {
+            border-color: #d0d9ee;
+        }
+
+        /* ---------- 功能说明卡片 ---------- */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.2rem;
+            margin-top: 2.6rem;
+            padding-top: 2rem;
+            border-top: 2px solid #f0f4fe;
+        }
+
+        .info-card {
+            background: #fafcff;
+            border-radius: 1.2rem;
+            padding: 1.2rem 1.2rem 1.1rem;
+            transition: background 0.15s;
+            border: 1px solid #f0f4fe;
+        }
+
+        .info-card h4 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-card p {
+            font-size: 0.92rem;
+            line-height: 1.5;
+            color: #334155;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-card .example {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: #f1f5f9;
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.4rem;
+            display: inline-block;
+            margin-top: 0.2rem;
+            word-break: break-all;
+        }
+
+        /* ---------- 底部工具链接 ---------- */
+        .tool-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem 1.8rem;
+            margin-top: 2.2rem;
+            padding-top: 1.6rem;
+            border-top: 2px solid #f0f4fe;
+            font-size: 0.85rem;
+        }
+
+        .tool-links a {
+            color: #7b8cff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.15s;
+        }
+
+        .tool-links a:hover {
+            color: #4f5fd9;
+            text-decoration: underline;
+        }
+
+        /* ---------- 响应式微调 ---------- */
+        @media (max-width: 480px) {
+            .button-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .btn {
+                font-size: 0.82rem;
+                padding: 0.7rem 0.2rem;
+                min-height: 44px;
+            }
+            .stats {
+                gap: 1.2rem;
+            }
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .button-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ---------- 复制成功反馈 ---------- */
+        .copy-feedback {
+            color: #22a65e;
+            font-weight: 500;
+            font-size: 0.85rem;
+            margin-left: 0.6rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .copy-feedback.show {
+            opacity: 1;
+        }
+
+        /* 去除 textarea 内部滚动条在 Firefox 的难看样式 */
+        .input-section textarea {
+            scrollbar-width: thin;
+            scrollbar-color: #d4dcec #f1f4fa;
+        }
+        .input-section textarea::-webkit-scrollbar {
+            width: 6px;
+        }
+        .input-section textarea::-webkit-scrollbar-track {
+            background: #f1f4fa;
+            border-radius: 10px;
+        }
+        .input-section textarea::-webkit-scrollbar-thumb {
+            background: #d4dcec;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+
+        <!-- 头部 -->
+        <div class="header">
+            <h1>🔄 字母大小写转换</h1>
+            <p>输入或粘贴文本，一键转换大小写格式</p>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="input-section">
+            <textarea id="inputText" placeholder="在此输入要转换的文本…">abcdefghijklmnopqrstuvwxyz</textarea>
+        </div>
+
+        <!-- 统计 -->
+        <div class="stats">
+            <div class="stat-item">
+                <span class="num" id="wordCount">0</span>
+                <span class="label">单词</span>
+            </div>
+            <div class="stat-item">
+                <span class="num" id="charCount">0</span>
+                <span class="label">字符</span>
+            </div>
+        </div>
+
+        <!-- 按钮 -->
+        <div class="button-grid">
+            <button class="btn btn-upper" data-action="upper">
+                <span class="icon">⬇</span> 全部大写
+            </button>
+            <button class="btn btn-lower" data-action="lower">
+                <span class="icon">⬇</span> 全部小写
+            </button>
+            <button class="btn btn-reverse" data-action="reverse">
+                <span class="icon">↔</span> 颠倒顺序
+            </button>
+            <button class="btn btn-capitalize" data-action="capitalize">
+                <span class="icon">🔠</span> 单词首字母大写
+            </button>
+            <button class="btn btn-toggle" data-action="toggle">
+                <span class="icon">⇄</span> 切换大小写
+            </button>
+        </div>
+
+        <!-- 输出 -->
+        <div class="output-section">
+            <div class="output-label">
+                <span>📄 转换结果</span>
+                <div>
+                    <button class="copy-btn" id="copyBtn">📋 复制</button>
+                    <span class="copy-feedback" id="copyFeedback">已复制！</span>
+                </div>
+            </div>
+            <div class="output-box" id="outputBox"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // DOM 元素
+            const inputEl = document.getElementById('inputText');
+            const outputBox = document.getElementById('outputBox');
+            const wordCountEl = document.getElementById('wordCount');
+            const charCountEl = document.getElementById('charCount');
+            const copyBtn = document.getElementById('copyBtn');
+            const copyFeedback = document.getElementById('copyFeedback');
+
+            // ---------- 统计更新 ----------
+            function updateStats(text) {
+                const trimmed = text.trim();
+                const words = trimmed.length === 0 ? 0 : trimmed.split(/\s+/).filter(w => w.length > 0).length;
+                const chars = text.length;
+                wordCountEl.textContent = words;
+                charCountEl.textContent = chars;
+            }
+
+            // ---------- 输出显示 ----------
+            function setOutput(text) {
+                outputBox.textContent = text;
+                if (text && text.length > 0) {
+                    outputBox.classList.add('has-content');
+                } else {
+                    outputBox.classList.remove('has-content');
+                }
+            }
+
+            // ---------- 核心转换函数 ----------
+            function transform(action, text) {
+                if (!text) return '';
+
+                switch (action) {
+                    case 'upper':
+                        return text.toUpperCase();
+
+                    case 'lower':
+                        return text.toLowerCase();
+
+                    case 'reverse':
+                        return text.split('').reverse().join('');
+
+                    case 'capitalize':
+                        return text
+                            .toLowerCase()
+                            .split(/\s+/)
+                            .map(word => {
+                                if (word.length === 0) return word;
+                                return word[0].toUpperCase() + word.slice(1);
+                            })
+                            .join(' ');
+
+                    case 'toggle':
+                        return text
+                            .split('')
+                            .map(ch => {
+                                const lower = ch.toLowerCase();
+                                if (ch === lower) return ch.toUpperCase();
+                                else return lower;
+                            })
+                            .join('');
+
+                    default:
+                        return text;
+                }
+            }
+
+            // ---------- 执行转换并更新界面 ----------
+            function performTransform(action) {
+                const inputText = inputEl.value;
+                const result = transform(action, inputText);
+                setOutput(result);
+                // 保持统计基于原始输入
+                updateStats(inputText);
+            }
+
+            // ---------- 从输入同步统计 (仅统计) ----------
+            function syncStatsFromInput() {
+                updateStats(inputEl.value);
+            }
+
+            // ---------- 事件绑定 ----------
+            // 按钮点击
+            document.querySelectorAll('.btn[data-action]').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    const action = this.getAttribute('data-action');
+                    performTransform(action);
+                });
+            });
+
+            // 输入框实时统计
+            inputEl.addEventListener('input', function() {
+                syncStatsFromInput();
+                // 如果输出框为空或内容与输入相同（未做转换），自动清除输出?
+                // 更好的做法：保留输出内容，但不自动覆盖。
+                // 用户期望: 输入变化时，统计更新，但输出保留上次转换结果。
+                // 但如果输入变化后用户点击转换，会重新计算。
+                // 我们让统计实时更新，输出保持不变。
+                // 如果输出框内容是之前转换的结果，且用户修改了输入，我们不自动清除输出，
+                // 让用户决定是否重新转换。
+                // 但为了体验，如果输出框为空，可以保持为空。
+            });
+
+            // 页面加载时初始化
+            window.addEventListener('DOMContentLoaded', function() {
+                // 初始文本
+                const initial = inputEl.value;
+                updateStats(initial);
+                // 默认显示一个示例转换？不，保持输出为空，让用户操作。
+                // 但为了展示，我们可以默认做一次 "全部大写" 转换？ 或者留空。
+                // 根据设计，输出框为空占位。
+                setOutput('');
+                // 但如果想展示效果，可以执行一次 "全部大写"
+                // 取消注释下面一行即可开启默认演示:
+                // performTransform('upper');
+            });
+
+            // ---------- 复制功能 ----------
+            copyBtn.addEventListener('click', function() {
+                const text = outputBox.textContent;
+                if (!text || text.trim().length === 0) {
+                    // 提示无内容可复制
+                    copyFeedback.textContent = '没有内容';
+                    copyFeedback.classList.add('show');
+                    setTimeout(() => {
+                        copyFeedback.classList.remove('show');
+                        copyFeedback.textContent = '已复制！';
+                    }, 1200);
+                    return;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showCopySuccess();
+                    }).catch(() => {
+                        fallbackCopy(text);
+                    });
+                } else {
+                    fallbackCopy(text);
+                }
+            });
+
+            function fallbackCopy(text) {
+                // 传统方式
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showCopySuccess();
+                } catch (e) {
+                    copyFeedback.textContent = '复制失败';
+                    copyFeedback.classList.add('show');
+                    setTimeout(() => {
+                        copyFeedback.classList.remove('show');
+                        copyFeedback.textContent = '已复制！';
+                    }, 1500);
+                }
+                document.body.removeChild(textarea);
+            }
+
+            function showCopySuccess() {
+                copyFeedback.textContent = '已复制！';
+                copyFeedback.classList.add('show');
+                setTimeout(() => {
+                    copyFeedback.classList.remove('show');
+                }, 1800);
+            }
+
+            // ---------- 快捷键支持 (Ctrl+Enter 转换) ----------
+            inputEl.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    // 默认执行 "全部大写"? 或者让用户选择? 简单起见执行全部大写
+                    performTransform('upper');
+                }
+            });
+
+            // 额外：点击输出框可快速复制（可选），但已有复制按钮。
+
+            // 当用户点击输出框，选中全部内容方便复制（但不要干扰）
+            outputBox.addEventListener('click', function() {
+                // 如果内容不为空，全选（但会影响复制按钮操作，所以不强制全选）
+                // 用户可以通过双击或手动选择
+            });
+
+            // 双击输出框复制
+            outputBox.addEventListener('dblclick', function() {
+                const text = outputBox.textContent;
+                if (text && text.trim().length > 0) {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(() => {
+                            showCopySuccess();
+                        }).catch(() => {
+                            fallbackCopy(text);
+                        });
+                    } else {
+                        fallbackCopy(text);
+                    }
+                }
+            });
+
+            // 暴露 performTransform 到全局方便调试
+            window.__app = { performTransform, transform };
+        })();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='none' stroke='%232c3e50' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='41' fill='none' stroke='%23f1c40f' stroke-width='2' stroke-dasharray='4 4'/%3E%3Cline x1='50' y1='50' x2='50' y2='20' stroke='%232c3e50' stroke-width='7' stroke-linecap='round'/%3E%3Cline x1='50' y1='50' x2='74' y2='50' stroke='%232c3e50' stroke-width='5' stroke-linecap='round'/%3E%3Cline x1='50' y1='50' x2='68' y2='28' stroke='%23e74c3c' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='50' cy='50' r='6' fill='%23e74c3c'/%3E%3C/svg%3E">
+    <title>时钟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f5f5f5;
+            font-family: -apple-system, 'Helvetica Neue', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            transition: background 0.3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 暗色模式 */
+        @media (prefers-color-scheme: dark) {
+            html,
+            body {
+                background: #0d0d0d;
+            }
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            padding: 20px;
+            gap: 10px;
+        }
+
+        #clock-wrap {
+            flex: 1 1 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 0;
+        }
+
+        #clock-canvas {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            max-height: 100%;
+            aspect-ratio: 1/1;
+            border-radius: 50%;
+            background: transparent;
+            touch-action: none;
+        }
+
+        #digital-time {
+            flex: 0 0 auto;
+            font-size: clamp(32px, 8vw, 80px);
+            font-weight: 300;
+            letter-spacing: 0.08em;
+            color: #222222;
+            text-align: center;
+            padding: 4px 0 8px 0;
+            font-variant-numeric: tabular-nums;
+            transition: color 0.3s ease;
+            line-height: 1.2;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            #digital-time {
+                color: #e8e8e8;
+            }
+        }
+
+        /* 小屏适配 */
+        @media (max-width: 480px) {
+            #app {
+                padding: 12px;
+                gap: 6px;
+            }
+            #digital-time {
+                font-size: clamp(28px, 10vw, 48px);
+                padding: 2px 0 4px 0;
+            }
+        }
+
+        @media (max-height: 600px) {
+            #app {
+                padding: 10px;
+                gap: 4px;
+            }
+            #digital-time {
+                font-size: clamp(20px, 6vh, 36px);
+                padding: 0 0 2px 0;
+            }
+        }
+
+        /* 大屏限制最大尺寸 */
+        @media (min-width: 1024px) {
+            #clock-wrap {
+                max-width: 600px;
+                max-height: 600px;
+            }
+        }
+
+        @media (min-width: 1440px) {
+            #clock-wrap {
+                max-width: 700px;
+                max-height: 700px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="clock-wrap">
+            <canvas id="clock-canvas"></canvas>
+        </div>
+        <div id="digital-time">--:--:--</div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const canvas = document.getElementById('clock-canvas');
+            const ctx = canvas.getContext('2d');
+            const timeEl = document.getElementById('digital-time');
+
+            // ----- 尺寸管理 -----
+            let clockSize = 0;
+            let dpr = 1;
+            let isDark = false;
+
+            function getTheme() {
+                return window.matchMedia('(prefers-color-scheme: dark)').matches;
+            }
+
+            function computeSize() {
+                const wrap = document.getElementById('clock-wrap');
+                const wrapRect = wrap.getBoundingClientRect();
+                const w = wrapRect.width;
+                const h = wrapRect.height;
+                // 取宽高较小值，并留出安全边距
+                let size = Math.min(w, h) * 0.92;
+                // 限制最小尺寸
+                size = Math.max(size, 120);
+                // 限制最大尺寸（由CSS max-width/max-height控制，但这里也做保护）
+                const maxSize = Math.min(window.innerWidth * 0.85, window.innerHeight * 0.75);
+                size = Math.min(size, maxSize);
+                return Math.floor(size);
+            }
+
+            function setupCanvas() {
+                dpr = window.devicePixelRatio || 1;
+                const rawSize = computeSize();
+                // 确保尺寸为整数，避免亚像素模糊
+                clockSize = Math.floor(rawSize);
+                const logicalWidth = clockSize;
+                const logicalHeight = clockSize;
+                canvas.width = logicalWidth * dpr;
+                canvas.height = logicalHeight * dpr;
+                canvas.style.width = logicalWidth + 'px';
+                canvas.style.height = logicalHeight + 'px';
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.scale(dpr, dpr);
+                // 保存逻辑尺寸供绘制使用
+                return clockSize;
+            }
+
+            // ----- 颜色方案 -----
+            function getColors(dark) {
+                if (dark) {
+                    return {
+                        bg: '#0d0d0d',
+                        face: '#1e1e1e',
+                        border: '#3a3a3a',
+                        tick: '#555555',
+                        tickMajor: '#aaaaaa',
+                        number: '#cccccc',
+                        hourHand: '#e8e8e8',
+                        minuteHand: '#e8e8e8',
+                        secondHand: '#e74c3c',
+                        centerDot: '#e74c3c',
+                        centerRing: '#555555',
+                        shadow: 'rgba(0,0,0,0.5)',
+                    };
+                } else {
+                    return {
+                        bg: '#f5f5f5',
+                        face: '#ffffff',
+                        border: '#d0d0d0',
+                        tick: '#999999',
+                        tickMajor: '#444444',
+                        number: '#333333',
+                        hourHand: '#1a1a1a',
+                        minuteHand: '#1a1a1a',
+                        secondHand: '#e74c3c',
+                        centerDot: '#e74c3c',
+                        centerRing: '#cccccc',
+                        shadow: 'rgba(0,0,0,0.08)',
+                    };
+                }
+            }
+
+            // ----- 绘制时钟 -----
+            function drawClock() {
+                const size = clockSize;
+                if (size < 10) return;
+
+                const dark = getTheme();
+                isDark = dark;
+                const colors = getColors(dark);
+
+                const cx = size / 2;
+                const cy = size / 2;
+                const radius = size / 2 - 4;
+
+                // 清空
+                ctx.clearRect(0, 0, size, size);
+
+                // --- 表盘 ---
+                // 背景
+                const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+                if (dark) {
+                    grad.addColorStop(0, '#2a2a2a');
+                    grad.addColorStop(1, '#1a1a1a');
+                } else {
+                    grad.addColorStop(0, '#ffffff');
+                    grad.addColorStop(1, '#f0f0f0');
+                }
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // 外圈边框
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = colors.border;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // 内圈细环 (装饰)
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * 0.97, 0, Math.PI * 2);
+                ctx.strokeStyle = colors.border;
+                ctx.lineWidth = 0.8;
+                ctx.globalAlpha = 0.4;
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+
+                // --- 刻度和数字 ---
+                const tickMajorLen = radius * 0.085;
+                const tickMinorLen = radius * 0.045;
+                const tickMajorWidth = 2.2;
+                const tickMinorWidth = 1.2;
+
+                for (let i = 0; i < 60; i++) {
+                    const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+                    const isMajor = i % 5 === 0;
+                    const len = isMajor ? tickMajorLen : tickMinorLen;
+                    const w = isMajor ? tickMajorWidth : tickMinorWidth;
+                    const r1 = radius - len;
+                    const r2 = radius;
+
+                    const x1 = cx + Math.cos(angle) * r1;
+                    const y1 = cy + Math.sin(angle) * r1;
+                    const x2 = cx + Math.cos(angle) * r2;
+                    const y2 = cy + Math.sin(angle) * r2;
+
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.strokeStyle = isMajor ? colors.tickMajor : colors.tick;
+                    ctx.lineWidth = w;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+
+                // 数字 1-12
+                const numRadius = radius * 0.78;
+                const fontSize = Math.max(12, radius * 0.12);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = colors.number;
+                ctx.font = fontSize + 'px "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif';
+                ctx.shadowColor = colors.shadow;
+                ctx.shadowBlur = 2;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 1;
+
+                for (let i = 1; i <= 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                    const x = cx + Math.cos(angle) * numRadius;
+                    const y = cy + Math.sin(angle) * numRadius;
+                    ctx.fillText(String(i), x, y + 1);
+                }
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+
+                // --- 指针 ---
+                const now = new Date();
+                const ms = now.getMilliseconds();
+                const sec = now.getSeconds() + ms / 1000;
+                const min = now.getMinutes() + sec / 60;
+                const hour = (now.getHours() % 12) + min / 60;
+
+                const secAngle = sec * 6 * Math.PI / 180;
+                const minAngle = min * 6 * Math.PI / 180;
+                const hourAngle = hour * 30 * Math.PI / 180;
+
+                // 时针
+                const hourLen = radius * 0.40;
+                const hourWidth = radius * 0.052;
+                drawHand(cx, cy, hourAngle, hourLen, hourWidth, colors.hourHand, true);
+
+                // 分针
+                const minLen = radius * 0.55;
+                const minWidth = radius * 0.036;
+                drawHand(cx, cy, minAngle, minLen, minWidth, colors.minuteHand, true);
+
+                // 秒针
+                const secLen = radius * 0.68;
+                const secWidth = radius * 0.018;
+                drawSecondHand(cx, cy, secAngle, secLen, secWidth, colors.secondHand);
+
+                // 中心装饰
+                const dotR = radius * 0.045;
+                // 外圈
+                ctx.beginPath();
+                ctx.arc(cx, cy, dotR * 1.8, 0, Math.PI * 2);
+                ctx.fillStyle = colors.centerRing;
+                ctx.globalAlpha = 0.3;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // 中心点
+                const gradDot = ctx.createRadialGradient(cx - dotR * 0.3, cy - dotR * 0.3, 0, cx, cy, dotR);
+                if (dark) {
+                    gradDot.addColorStop(0, '#ff6b6b');
+                    gradDot.addColorStop(1, '#c0392b');
+                } else {
+                    gradDot.addColorStop(0, '#ff6b6b');
+                    gradDot.addColorStop(1, '#c0392b');
+                }
+                ctx.beginPath();
+                ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+                ctx.fillStyle = gradDot;
+                ctx.fill();
+
+                // 高光
+                ctx.beginPath();
+                ctx.arc(cx - dotR * 0.25, cy - dotR * 0.35, dotR * 0.3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                ctx.fill();
+            }
+
+            // 绘制时针/分针
+            function drawHand(cx, cy, angle, length, width, color, withTail) {
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+
+                // 主针体 - 使用渐变增加立体感
+                const grad = ctx.createLinearGradient(0, 0, 0, -length);
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, color);
+                ctx.shadowColor = 'rgba(0,0,0,0.15)';
+                ctx.shadowBlur = 6;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 2;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -length);
+                ctx.lineWidth = width;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = grad;
+                ctx.stroke();
+
+                // 尾部小圆 (靠近中心)
+                if (withTail) {
+                    const tailR = width * 0.6;
+                    ctx.shadowBlur = 4;
+                    ctx.beginPath();
+                    ctx.arc(0, tailR * 0.5, tailR, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.fill();
+                }
+
+                // 末端小圆 (装饰)
+                const tipR = width * 0.55;
+                ctx.shadowBlur = 4;
+                ctx.beginPath();
+                ctx.arc(0, -length, tipR, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.restore();
+            }
+
+            // 绘制秒针
+            function drawSecondHand(cx, cy, angle, length, width, color) {
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+
+                // 阴影
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 1;
+                ctx.shadowOffsetY = 2;
+
+                // 主针
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -length);
+                ctx.lineWidth = width;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = color;
+                ctx.stroke();
+
+                // 末端小圆点
+                const dotR = width * 1.6;
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.arc(0, -length, dotR, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                // 尾部小圆 (平衡配重)
+                const tailLen = length * 0.12;
+                ctx.shadowBlur = 4;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, tailLen);
+                ctx.lineWidth = width * 0.7;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = color;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(0, tailLen, width * 0.7, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+                ctx.restore();
+            }
+
+            // ----- 数字时间更新 -----
+            function updateDigitalTime() {
+                const now = new Date();
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+                timeEl.textContent = h + ':' + m + ':' + s;
+            }
+
+            // ----- 动画循环 -----
+            let animationId = null;
+            let lastSecond = -1;
+
+            function tick() {
+                const now = new Date();
+                const sec = now.getSeconds();
+
+                // 每秒更新数字时间
+                if (sec !== lastSecond) {
+                    lastSecond = sec;
+                    updateDigitalTime();
+                }
+
+                // 每帧重绘时钟 (指针平滑)
+                drawClock();
+
+                animationId = requestAnimationFrame(tick);
+            }
+
+            // ----- 尺寸变化处理 -----
+            let resizeTimer = null;
+
+            function handleResize() {
+                if (resizeTimer) {
+                    cancelAnimationFrame(resizeTimer);
+                    resizeTimer = null;
+                }
+                resizeTimer = requestAnimationFrame(function() {
+                    const newSize = setupCanvas();
+                    if (newSize > 10) {
+                        drawClock();
+                        updateDigitalTime();
+                    }
+                    resizeTimer = null;
+                });
+            }
+
+            // ----- 主题变化监听 -----
+            function handleThemeChange() {
+                // 重绘即可，颜色从getTheme()获取
+                drawClock();
+            }
+
+            // ----- 初始化 -----
+            function init() {
+                // 设置画布
+                setupCanvas();
+                // 更新初始时间
+                updateDigitalTime();
+                lastSecond = new Date().getSeconds();
+                // 绘制第一帧
+                drawClock();
+
+                // 启动动画
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                tick();
+
+                // 监听 resize
+                window.addEventListener('resize', handleResize);
+                window.addEventListener('orientationchange', function() {
+                    setTimeout(handleResize, 200);
+                });
+
+                // 监听主题变化
+                const media = window.matchMedia('(prefers-color-scheme: dark)');
+                if (media.addEventListener) {
+                    media.addEventListener('change', handleThemeChange);
+                } else if (media.addListener) {
+                    media.addListener(handleThemeChange);
+                }
+
+                // 页面可见性变化时重新校准 (切到后台再切回)
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden) {
+                        updateDigitalTime();
+                        lastSecond = new Date().getSeconds();
+                        drawClock();
+                    }
+                });
+            }
+
+            // DOM 准备就绪
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+            // 清理 (虽然不是必须，但良好的习惯)
+            window.addEventListener('beforeunload', function() {
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                window.removeEventListener('resize', handleResize);
+            });
+
+        })();
+    </script>
+</body>
+</html>

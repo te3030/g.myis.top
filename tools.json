@@ -1,0 +1,26 @@
+[
+    {
+        "name": "FLV 直播播放器",
+        "url": "./tools/flv_live_player.html",
+        "description": "基于 flv.js 的 FLV 直播流播放器，支持抖音、快手等直播流地址，自动保存 URL 至浏览器地址栏",
+        "logo": ""
+    },
+    {
+        "name": "经纬度定位工具",
+        "url": "./tools/map.html",
+        "description": "基于高德地图和百度地图的经纬度查询与定位工具，支持坐标输入、地图切换、逆地理编码显示地址。",
+        "logo": "https://via.placeholder.com/48?text=Map"
+    },
+    {
+        "name": "字母大小写转换工具",
+        "url": "./tools/uppercase-lowercase-converter.html",
+        "description": "在线大小写转换工具，支持全部大写、全部小写、颠倒顺序、单词首字母大写、切换大小写等五种转换模式，实时统计单词数和字符数，并支持一键复制结果。",
+        "logo": "🔄"
+    },
+    {
+        "name": "模拟时钟",
+        "url": "./tools/clock.html",
+        "description": "一个实时模拟时钟，包含指针表盘与数字时间显示，支持暗色模式、自适应屏幕尺寸，并带有平滑秒针动画。",
+        "logo": ""
+    }
+]

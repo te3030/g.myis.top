@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💡</text></svg>">
+    <title>全局最优解</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0b0d1a;
+            font-family: 'Segoe UI', 'PingFang SC', Roboto, sans-serif;
+            user-select: none;
+        }
+        .page {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #0b0d1a;
+        }
+        .bg-canvas {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        #leftCanvas {
+            left: 0;
+            background: radial-gradient(ellipse at 30% 50%, #0f1a2e, #05070f);
+        }
+        #rightCanvas {
+            right: 0;
+            background: radial-gradient(ellipse at 70% 50%, #1e0f1a, #05070f);
+        }
+
+        .content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 20px 30px;
+            background: radial-gradient(ellipse at center, rgba(11, 13, 30, 0.55) 40%, rgba(11, 13, 30, 0.85) 100%);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        .workpieces-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: clamp(20px, 5vw, 60px);
+            width: 100%;
+            max-width: 900px;
+            flex: 0 1 auto;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .workpiece-wrapper {
+            position: relative;
+            width: clamp(200px, 28vw, 340px);
+            height: clamp(200px, 28vw, 340px);
+            flex-shrink: 0;
+        }
+
+        .workpiece {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 90%;
+            height: 90%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(ellipse at 35% 30%, #b8c6d4, #6a7a8a 55%, #3b4652 85%, #1e2630);
+            box-shadow: 0 0 60px rgba(100, 180, 255, 0.12), inset 0 -20px 40px rgba(0, 0, 0, 0.6), inset 0 20px 30px rgba(255, 255, 255, 0.12), 0 20px 60px rgba(0, 0, 0, 0.7);
+            border: 2px solid rgba(255, 255, 255, 0.06);
+        }
+        .workpiece::after {
+            content: '';
+            position: absolute;
+            top: 8%;
+            left: 8%;
+            right: 8%;
+            bottom: 8%;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.05), transparent 70%);
+            pointer-events: none;
+        }
+        .center-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 14px;
+            height: 14px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            background: radial-gradient(circle at 40% 35%, #d4e0ec, #3d4d5e);
+            box-shadow: inset 0 -2px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(100, 180, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .screw {
+            position: absolute;
+            width: clamp(22px, 3.8vw, 34px);
+            height: clamp(22px, 3.8vw, 34px);
+            border-radius: 50%;
+            transform-origin: center center;
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .screw::before, .screw::after {
+            content: '';
+            position: absolute;
+            background: rgba(0, 0, 0, 0.45);
+            border-radius: 1px;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+        }
+        .screw::before {
+            width: 45%;
+            height: 2px;
+        }
+        .screw::after {
+            width: 2px;
+            height: 45%;
+        }
+
+        /* 默认灰色 */
+        .screw.state-default {
+            background: radial-gradient(circle at 40% 35%, #a0aab5, #6b7682 60%, #3d4650);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.05);
+            transform: rotate(0deg) scale(1);
+        }
+        .screw.state-default::before, .screw.state-default::after {
+            background: rgba(0, 0, 0, 0.35);
+        }
+
+        /* 半圈 (金色) */
+        .screw.state-half {
+            background: radial-gradient(circle at 40% 35%, #f5e56b, #c9a830 60%, #8a721a);
+            box-shadow: 0 4px 14px rgba(200, 170, 50, 0.3), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 215, 0, 0.25);
+            transform: rotate(45deg) scale(1);
+        }
+        .screw.state-half::before, .screw.state-half::after {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        /* 拧紧 (绿色) */
+        .screw.state-tight {
+            background: radial-gradient(circle at 40% 35%, #8ef06a, #3da31e 60%, #1e5f0a);
+            box-shadow: 0 4px 18px rgba(60, 200, 30, 0.3), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            border-color: rgba(100, 255, 80, 0.2);
+            transform: rotate(90deg) scale(1);
+        }
+        .screw.state-tight::before, .screw.state-tight::after {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        /* 问题 (红色闪烁) */
+        .screw.state-problem {
+            background: radial-gradient(circle at 40% 35%, #ff6b6b, #c41e1e 60%, #7a0a0a);
+            box-shadow: 0 4px 24px rgba(255, 50, 50, 0.5), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 80, 80, 0.4);
+            transform: rotate(90deg) scale(1.08);
+            animation: problemPulse 0.8s ease-in-out infinite alternate;
+        }
+        .screw.state-problem::before, .screw.state-problem::after {
+            background: rgba(0, 0, 0, 0.6);
+        }
+        @keyframes problemPulse {
+            0% {
+                box-shadow: 0 4px 24px rgba(255, 50, 50, 0.5), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.2);
+                transform: rotate(90deg) scale(1.08);
+            }
+            100% {
+                box-shadow: 0 4px 40px rgba(255, 20, 20, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.2);
+                transform: rotate(90deg) scale(1.18);
+            }
+        }
+
+        /* 间隔变黄 (亮橙黄) */
+        .screw.state-yellow {
+            background: radial-gradient(circle at 40% 35%, #ffd966, #f0a030 60%, #b87320);
+            box-shadow: 0 4px 18px rgba(255, 200, 50, 0.4), inset 0 -3px 6px rgba(0, 0, 0, 0.4), inset 0 3px 6px rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 200, 0, 0.3);
+            transform: rotate(60deg) scale(1.02);
+        }
+        .screw.state-yellow::before, .screw.state-yellow::after {
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .screw-label {
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(7px, 1.2vw, 10px);
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+        .screw-dot {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            transition: background 0.6s ease;
+            pointer-events: none;
+        }
+        .screw-dot.dot-default { background: #6b7682; }
+        .screw-dot.dot-half { background: #c9a830; }
+        .screw-dot.dot-tight { background: #3da31e; }
+        .screw-dot.dot-problem {
+            background: #c41e1e;
+            animation: dotBlink 0.6s ease-in-out infinite alternate;
+        }
+        .screw-dot.dot-yellow { background: #f0a030; }
+        @keyframes dotBlink {
+            0% { opacity: 0.4; transform: translateX(-50%) scale(0.8); }
+            100% { opacity: 1; transform: translateX(-50%) scale(1.2); }
+        }
+
+        .text-area {
+            position: relative;
+            width: 100%;
+            max-width: 780px;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 4px;
+            padding: 0 16px;
+        }
+        .text-slide {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: clamp(18px, 3.8vw, 42px);
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(100, 180, 255, 0.2), 0 0 60px rgba(100, 180, 255, 0.08), 0 4px 30px rgba(0, 0, 0, 0.6);
+            letter-spacing: 0.04em;
+            line-height: 1.3;
+            opacity: 0;
+            transform: translateY(18px) scale(0.96);
+            transition: opacity 0.9s ease, transform 0.9s ease;
+            pointer-events: none;
+            padding: 0 10px;
+        }
+        .text-slide.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+        .text-slide.exit {
+            opacity: 0;
+            transform: translateY(-18px) scale(0.96);
+        }
+
+        .sub-text {
+            position: absolute;
+            bottom: 24px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: 2px;
+            font-weight: 300;
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+        }
+        .sub-text span {
+            display: inline-block;
+            padding: 0 18px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 5px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            font-size: 11px;
+        }
+
+        @media (max-width: 640px) {
+            .workpieces-row { gap: 16px; }
+            .workpiece-wrapper { width: clamp(150px, 38vw, 220px); height: clamp(150px, 38vw, 220px); }
+            .screw-label { bottom: -14px; font-size: 7px; }
+            .screw-dot { bottom: -22px; width: 4px; height: 4px; }
+            .sub-text { font-size: 10px; bottom: 16px; }
+            .sub-text span { font-size: 9px; padding: 4px 14px; }
+            .text-slide { font-size: clamp(16px, 4.5vw, 24px); }
+            .center-dot { width: 10px; height: 10px; }
+        }
+        @media (max-width: 420px) {
+            .workpiece-wrapper { width: 130px; height: 130px; }
+            .screw { width: 18px; height: 18px; }
+            .screw::before { width: 40%; height: 1.5px; }
+            .screw::after { width: 1.5px; height: 40%; }
+            .screw-label { font-size: 6px; bottom: -12px; }
+            .screw-dot { bottom: -18px; width: 3px; height: 3px; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <canvas id="leftCanvas" class="bg-canvas"></canvas>
+    <canvas id="rightCanvas" class="bg-canvas"></canvas>
+    <div class="content">
+        <div class="workpieces-row">
+            <div class="workpiece-wrapper" id="leftWrapper">
+                <div class="workpiece"></div>
+                <div class="center-dot"></div>
+            </div>
+            <div class="workpiece-wrapper" id="rightWrapper">
+                <div class="workpiece"></div>
+                <div class="center-dot"></div>
+            </div>
+        </div>
+        <div class="text-area" id="textArea">
+            <div class="text-slide active" data-index="0">太用力的人走不远</div>
+            <div class="text-slide" data-index="1">局部最优解未必是全局最优解</div>
+            <div class="text-slide" data-index="2">贪一时局部之善策，误全局最优之归途。</div>
+        </div>
+        <div class="sub-text"><span>⚙ 每个先拧半圈 · 策略不同见全局</span></div>
+    </div>
+</div>
+
+<script>
+    // ======================== 底图动画 ========================
+    const leftCanvas = document.getElementById('leftCanvas');
+    const lctx = leftCanvas.getContext('2d');
+    let lW, lH;
+    function resizeLeft() {
+        const rect = leftCanvas.parentElement.getBoundingClientRect();
+        leftCanvas.width = rect.width;
+        leftCanvas.height = rect.height;
+        lW = leftCanvas.width; lH = leftCanvas.height;
+    }
+    resizeLeft();
+    window.addEventListener('resize', resizeLeft);
+
+    class Particle {
+        constructor() { this.reset(true); }
+        reset(init) {
+            this.x = Math.random() * lW;
+            this.y = Math.random() * lH;
+            this.size = 1.5 + Math.random() * 3;
+            this.speedX = (0.3 + Math.random() * 0.7) * (Math.random() > 0.5 ? 1 : -1);
+            this.speedY = (0.2 + Math.random() * 0.5) * (Math.random() > 0.5 ? 1 : -1);
+            this.phase = Math.random() * Math.PI * 2;
+            this.freq = 0.005 + Math.random() * 0.015;
+            this.hue = 210 + Math.random() * 40;
+            this.sat = 60 + Math.random() * 30;
+            this.lit = 50 + Math.random() * 30;
+            this.alpha = 0.3 + Math.random() * 0.5;
+            this.trail = [];
+            this.maxTrail = 6 + Math.floor(Math.random() * 8);
+        }
+        update() {
+            this.x += this.speedX + Math.sin(this.phase) * 0.2;
+            this.y += this.speedY + Math.cos(this.phase * 0.7) * 0.15;
+            this.phase += this.freq;
+            if (this.x < -10) this.x = lW + 10;
+            if (this.x > lW + 10) this.x = -10;
+            if (this.y < -10) this.y = lH + 10;
+            if (this.y > lH + 10) this.y = -10;
+            this.trail.push({ x: this.x, y: this.y });
+            if (this.trail.length > this.maxTrail) this.trail.shift();
+        }
+        draw(ctx) {
+            if (this.trail.length > 1) {
+                for (let i = 1; i < this.trail.length; i++) {
+                    const t = i / this.trail.length;
+                    const alpha = this.alpha * t * 0.4;
+                    const size = this.size * t * 0.6;
+                    ctx.beginPath();
+                    ctx.arc(this.trail[i].x, this.trail[i].y, size, 0, Math.PI * 2);
+                    ctx.fillStyle = `hsla(${this.hue}, ${this.sat}%, ${this.lit}%, ${alpha})`;
+                    ctx.fill();
+                }
+            }
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = `hsla(${this.hue}, ${this.sat}%, ${this.lit}%, ${this.alpha})`;
+            ctx.fill();
+            const glow = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 3);
+            glow.addColorStop(0, `hsla(${this.hue}, 100%, 80%, 0.08)`);
+            glow.addColorStop(1, `hsla(${this.hue}, 100%, 80%, 0)`);
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    const particles = [];
+    for (let i = 0; i < 140; i++) particles.push(new Particle());
+
+    function animateLeft() {
+        lctx.clearRect(0, 0, lW, lH);
+        const grad = lctx.createRadialGradient(lW * 0.3, lH * 0.4, 0, lW * 0.3, lH * 0.4, lW * 0.7);
+        grad.addColorStop(0, 'rgba(60, 120, 255, 0.04)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        lctx.fillStyle = grad;
+        lctx.fillRect(0, 0, lW, lH);
+        particles.forEach(p => { p.update(); p.draw(lctx); });
+        requestAnimationFrame(animateLeft);
+    }
+    animateLeft();
+
+    const rightCanvas = document.getElementById('rightCanvas');
+    const rctx = rightCanvas.getContext('2d');
+    let rW, rH;
+    function resizeRight() {
+        const rect = rightCanvas.parentElement.getBoundingClientRect();
+        rightCanvas.width = rect.width;
+        rightCanvas.height = rect.height;
+        rW = rightCanvas.width; rH = rightCanvas.height;
+    }
+    resizeRight();
+    window.addEventListener('resize', resizeRight);
+
+    class Ripple {
+        constructor() {
+            this.x = rW * (0.3 + Math.random() * 0.4);
+            this.y = rH * (0.2 + Math.random() * 0.6);
+            this.radius = 2 + Math.random() * 8;
+            this.maxRadius = 80 + Math.random() * 160;
+            this.speed = 0.6 + Math.random() * 1.0;
+            this.alpha = 0.5 + Math.random() * 0.4;
+            this.hue = 20 + Math.random() * 30;
+            this.sat = 70 + Math.random() * 30;
+            this.lit = 50 + Math.random() * 30;
+            this.alive = true;
+            this.age = 0;
+            this.maxAge = 120 + Math.random() * 100;
+        }
+        update() {
+            this.radius += this.speed;
+            this.age++;
+            if (this.radius > this.maxRadius || this.age > this.maxAge) this.alive = false;
+        }
+        draw(ctx) {
+            const progress = this.radius / this.maxRadius;
+            const alpha = this.alpha * (1 - progress) * 0.9;
+            const width = 1.5 + 4 * (1 - progress);
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `hsla(${this.hue}, ${this.sat}%, ${this.lit}%, ${alpha})`;
+            ctx.lineWidth = width;
+            ctx.shadowColor = `hsla(${this.hue}, 100%, 70%, ${alpha * 0.2})`;
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            if (this.radius > 10) {
+                const glow = ctx.createRadialGradient(this.x, this.y, this.radius * 0.2, this.x, this.y, this.radius);
+                glow.addColorStop(0, `hsla(${this.hue}, 100%, 80%, ${alpha * 0.05})`);
+                glow.addColorStop(1, `hsla(${this.hue}, 100%, 80%, 0)`);
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    let ripples = [];
+    for (let i = 0; i < 6; i++) {
+        const r = new Ripple();
+        r.radius = Math.random() * r.maxRadius;
+        r.age = Math.random() * r.maxAge;
+        ripples.push(r);
+    }
+
+    function animateRight() {
+        rctx.clearRect(0, 0, rW, rH);
+        const grad = rctx.createRadialGradient(rW * 0.7, rH * 0.5, 0, rW * 0.7, rH * 0.5, rW * 0.6);
+        grad.addColorStop(0, 'rgba(200, 80, 40, 0.04)');
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        rctx.fillStyle = grad;
+        rctx.fillRect(0, 0, rW, rH);
+        if (Math.random() < 0.06) {
+            const r = new Ripple();
+            ripples.push(r);
+        }
+        ripples = ripples.filter(r => r.alive);
+        ripples.forEach(r => { r.update(); r.draw(rctx); });
+        requestAnimationFrame(animateRight);
+    }
+    animateRight();
+
+    // ======================== 螺丝系统 ========================
+    const TOTAL = 9;
+    function createScrews(wrapperId, offsetAngle = 0) {
+        const wrapper = document.getElementById(wrapperId);
+        const radiusPercent = 42;
+        const screwSize = wrapper.clientWidth * 0.11 || 30;
+        const data = [];
+        for (let i = 0; i < TOTAL; i++) {
+            const angle = (i / TOTAL) * 2 * Math.PI - Math.PI / 2 + offsetAngle;
+            const x = 50 + radiusPercent * Math.cos(angle);
+            const y = 50 + radiusPercent * Math.sin(angle);
+            const screw = document.createElement('div');
+            screw.className = 'screw state-default';
+            screw.style.left = `calc(${x}% - ${screwSize/2}px)`;
+            screw.style.top = `calc(${y}% - ${screwSize/2}px)`;
+            screw.style.width = screwSize + 'px';
+            screw.style.height = screwSize + 'px';
+            screw.dataset.index = i;
+            wrapper.appendChild(screw);
+            data.push({
+                el: screw,
+                angle: angle,
+                state: 'default',
+                index: i,
+            });
+        }
+        return data;
+    }
+
+    function setScrewState(data, state) {
+        const { el, dot } = data;
+        el.classList.remove('state-default', 'state-half', 'state-tight', 'state-problem', 'state-yellow');
+        if (state === 'default') {
+            el.classList.add('state-default');
+        } else if (state === 'half') {
+            el.classList.add('state-half');
+        } else if (state === 'tight') {
+            el.classList.add('state-tight');
+        } else if (state === 'problem') {
+            el.classList.add('state-problem');
+        } else if (state === 'yellow') {
+            el.classList.add('state-yellow');
+        }
+        data.state = state;
+    }
+
+    const leftScrews = createScrews('leftWrapper', 0);
+    const rightScrews = createScrews('rightWrapper', 0);
+    leftScrews.forEach(d => setScrewState(d, 'default'));
+    rightScrews.forEach(d => setScrewState(d, 'default'));
+
+    // ======================== 同步控制逻辑 ========================
+    // 左侧：一次变绿 (1~8绿色，9红色问题)
+    // 右侧：两次变化 (间隔顺序 1,3,5,7,9,2,4,6,8 先黄后绿)
+    const RIGHT_ORDER = [0, 2, 4, 6, 8, 1, 3, 5, 7];
+
+    let phase = 0;          // 0:初始等待, 1:左变绿+右变黄, 2:右变绿, 3:展示, 4:重置等待
+    let frame = 0;
+    let leftStep = 0;       // 左侧已变绿数量 (0~8)
+    let rightStep = 0;      // 右侧当前处理到第几步 (0~8)
+
+    const SHOW_PAUSE = 35;
+
+    // 文字轮换
+    const textSlides = document.querySelectorAll('.text-slide');
+    let currentTextIndex = 0;
+    let textInterval = setInterval(() => {
+        currentTextIndex = (currentTextIndex + 1) % textSlides.length;
+        textSlides.forEach((el, i) => {
+            el.classList.remove('active', 'exit');
+            if (i === currentTextIndex) el.classList.add('active');
+            else el.classList.add('exit');
+        });
+    }, 3500);
+    textSlides.forEach((el, i) => {
+        el.classList.remove('active', 'exit');
+        if (i === 0) el.classList.add('active');
+        else el.classList.add('exit');
+    });
+
+    function resetAll() {
+        leftScrews.forEach(d => setScrewState(d, 'default'));
+        rightScrews.forEach(d => setScrewState(d, 'default'));
+        phase = 0;
+        frame = 0;
+        leftStep = 0;
+        rightStep = 0;
+        currentTextIndex = 0;
+        textSlides.forEach((el, i) => {
+            el.classList.remove('active', 'exit');
+            if (i === 0) el.classList.add('active');
+            else el.classList.add('exit');
+        });
+        clearInterval(textInterval);
+        textInterval = setInterval(() => {
+            currentTextIndex = (currentTextIndex + 1) % textSlides.length;
+            textSlides.forEach((el, i) => {
+                el.classList.remove('active', 'exit');
+                if (i === currentTextIndex) el.classList.add('active');
+                else el.classList.add('exit');
+            });
+        }, 3500);
+    }
+    function mainLoop() {
+        frame++;
+
+        if (phase === 0) {
+            if (frame > SHOW_PAUSE) {
+                phase = 1;
+                frame = 0;
+                leftStep = 0;
+                rightStep = 0;
+                // 左侧第一个变绿
+                setScrewState(leftScrews[0], 'tight');
+                leftStep = 1;
+                // 右侧第一个变黄
+                setScrewState(rightScrews[RIGHT_ORDER[0]], 'yellow');
+                rightStep = 1;
+            }
+        }
+        
+        if (phase == 1 && frame > SHOW_PAUSE) {
+            leftStep++;
+            if (leftStep % 2 == 0 && leftStep < 16) {
+                setScrewState(leftScrews[Math.floor(leftStep/2)], 'tight');
+            }
+            // 右侧继续
+            if (rightStep >= 9) {
+                setScrewState(rightScrews[RIGHT_ORDER[rightStep%9]], 'tight');
+                rightStep++;
+            }
+            if (rightStep < 9) {
+                setScrewState(rightScrews[RIGHT_ORDER[rightStep%9]], 'yellow');
+                rightStep++;
+            }
+            if (leftStep > 16) {
+                // 左侧第9个出问题 (红色)
+                setScrewState(leftScrews[8], 'problem');
+            }
+            if (leftStep > 18) {
+                phase = 3;
+            }
+            if (frame > 35) {
+                frame = 0;
+            }
+        } 
+        if (phase === 3) {
+            if (frame > SHOW_PAUSE*4) {
+                phase = 4;
+                frame = 0;
+            }
+        } else if (phase === 4) {
+            if (frame > SHOW_PAUSE) {
+                resetAll();
+            }
+        }
+
+        requestAnimationFrame(mainLoop);
+    }
+    mainLoop();
+
+    // 窗口 resize
+    window.addEventListener('resize', () => {
+        resizeLeft(); resizeRight();
+        particles.forEach(p => { if (p.x > lW) p.x = lW * 0.5; if (p.y > lH) p.y = lH * 0.5; });
+        ripples = ripples.filter(r => r.alive);
+        const leftWrapper = document.getElementById('leftWrapper');
+        const rightWrapper = document.getElementById('rightWrapper');
+        const leftSize = leftWrapper.clientWidth * 0.11 || 30;
+        const rightSize = rightWrapper.clientWidth * 0.11 || 30;
+        leftScrews.forEach(d => { d.el.style.width = leftSize + 'px'; d.el.style.height = leftSize + 'px'; });
+        rightScrews.forEach(d => { d.el.style.width = rightSize + 'px'; d.el.style.height = rightSize + 'px'; });
+    });
+    setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 50);
+
+    console.log('✅ 双工件演示 | 左:一次变绿(9出问题)  右:两次变化 先黄后绿 (1,3,5,7,9,2,4,6,8)');
+</script>
+</body>
+</html>

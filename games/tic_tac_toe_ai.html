@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0%200%20100%20100'%3E%3Ccircle cx='50' cy='50' r='45' fill='none' stroke='%232c3e50' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23f1c40f' stroke-width='2' stroke-dasharray='4%204'/%3E%3Cg stroke='%237f8c8d' stroke-width='2' stroke-linecap='round'%3E%3Cline x1='20' y1='35' x2='80' y2='35'/%3E%3Cline x1='20' y1='65' x2='80' y2='65'/%3E%3Cline x1='35' y1='20' x2='35' y2='80'/%3E%3Cline x1='65' y1='20' x2='65' y2='80'/%3E%3C/g%3E%3Cg stroke='%233498db' stroke-width='5' stroke-linecap='round'%3E%3Cline x1='24' y1='24' x2='46' y2='46'/%3E%3Cline x1='46' y1='24' x2='24' y2='46'/%3E%3C/g%3E%3Ccircle cx='74' cy='74' r='10' fill='none' stroke='%23e74c3c' stroke-width='5'/%3E%3C/svg%3E">
+    <title>超级AI井字棋 - 终极对决</title>
+    <style>
+        /* ==================== 全局样式 ==================== */
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --primary-color: #3b82f6; /* 玩家 X 颜色 */
+            --accent-color: #ec4899;  /* 电脑 O 颜色 */
+            --text-color: #f8fafc;
+            --grid-line: rgba(255, 255, 255, 0.1);
+            --glow-x: 0 0 20px rgba(59, 130, 246, 0.6);
+            --glow-o: 0 0 20px rgba(236, 72, 153, 0.6);
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none; /* 防止双击选中文本 */
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* 背景装饰球 */
+        .bg-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: var(--primary-color); }
+        .blob-2 { bottom: -10%; right: -10%; width: 400px; height: 400px; background: var(--accent-color); }
+
+        /* ==================== 游戏容器 ==================== */
+        .game-container {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            max-width: 90%;
+            width: 450px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==================== 头部与计分板 ==================== */
+        header {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #60a5fa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .status-badge.turn-x { color: var(--primary-color); border-color: rgba(59, 130, 246, 0.3); box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.1); }
+        .status-badge.turn-o { color: var(--accent-color); border-color: rgba(236, 72, 153, 0.3); box-shadow: inset 0 0 10px rgba(236, 72, 153, 0.1); }
+
+        .scoreboard {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            padding: 0 1rem;
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+        .score-val { font-size: 1.5rem; font-weight: bold; }
+        .score-val.x { color: var(--primary-color); }
+        .score-val.o { color: var(--accent-color); }
+
+        /* ==================== 棋盘 ==================== */
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 1rem 0;
+        }
+
+        .cell {
+            width: 90px;
+            height: 90px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .cell:hover:not(.taken) {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.02);
+        }
+
+        .cell.taken { cursor: default; }
+
+        /* 棋子样式 */
+        .cell.x { color: var(--primary-color); text-shadow: var(--glow-x); }
+        .cell.o { color: var(--accent-color); text-shadow: var(--glow-o); }
+
+        /* 落子动画 */
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* ==================== 控制按钮 ==================== */
+        .btn-restart {
+            background: linear-gradient(135deg, var(--primary-color), #2563eb);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+            outline: none;
+            width: 100%;
+        }
+
+        .btn-restart:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+        }
+
+        .btn-restart:active {
+            transform: translateY(1px);
+        }
+
+        /* ==================== 结算弹窗 ==================== */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 2.5rem;
+            border-radius: 24px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .result-title {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 800;
+        }
+        .result-title.win { color: var(--primary-color); }
+        .result-title.lose { color: var(--accent-color); }
+        .result-title.draw { color: #94a3b8; }
+
+        /* 移动端适配 */
+        @media (max-width: 500px) {
+            .cell { width: 70px; height: 70px; font-size: 2.2rem; }
+            .game-container { padding: 1.5rem; width: 95%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 背景装饰 -->
+    <div class="bg-blob blob-1"></div>
+    <div class="bg-blob blob-2"></div>
+
+    <div class="game-container">
+        <header>
+            <h1>井字棋</h1>
+            <div id="status" class="status-badge turn-x">轮到你了 (X)</div>
+        </header>
+
+        <!-- 计分板 -->
+        <div class="scoreboard">
+            <div class="score-item">
+                <span class="score-label">玩家 (X)</span>
+                <span class="score-val x" id="scoreX">0</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">平局</span>
+                <span class="score-val" id="scoreDraw">0</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">AI (O)</span>
+                <span class="score-val o" id="scoreO">0</span>
+            </div>
+        </div>
+
+        <!-- 棋盘区域 -->
+        <div class="board" id="board">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <button class="btn-restart" id="restartBtn">重新开始</button>
+    </div>
+
+    <!-- 游戏结束弹窗 -->
+    <div class="modal-overlay" id="endModal">
+        <div class="modal-content">
+            <div class="result-title" id="resultMessage">你赢了！</div>
+            <button class="btn-restart" id="modalRestartBtn">再来一局</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * 游戏逻辑与超级AI (Minimax算法)
+         */
+
+        const statusDisplay = document.getElementById('status');
+        const cells = document.querySelectorAll('.cell');
+        const restartBtn = document.getElementById('restartBtn');
+        const modalRestartBtn = document.getElementById('modalRestartBtn');
+        const endModal = document.getElementById('endModal');
+        const resultMessage = document.getElementById('resultMessage');
+
+        // 计分板元素
+        const scoreXEl = document.getElementById('scoreX');
+        const scoreOEl = document.getElementById('scoreO');
+        const scoreDrawEl = document.getElementById('scoreDraw');
+
+        // 游戏状态
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+        let gameActive = true;
+        let currentPlayer = "X"; // 玩家总是 X
+        const aiPlayer = "O";    // AI 总是 O
+        
+        let scores = {
+            X: 0,
+            O: 0,
+            Draw: 0
+        };
+
+        // 胜利条件索引
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // 横向
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // 纵向
+            [0, 4, 8], [2, 4, 6]             // 对角线
+        ];
+
+        // 初始化
+        function init() {
+            cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+            restartBtn.addEventListener('click', handleRestartGame);
+            modalRestartBtn.addEventListener('click', handleRestartGame);
+            updateStatusDisplay();
+        }
+
+        // 处理点击事件
+        function handleCellClick(clickedCellEvent) {
+            const clickedCell = clickedCellEvent.target;
+            const clickedCellIndex = parseInt(clickedCell.getAttribute('data-index'));
+
+            // 如果格子已有内容或游戏结束，或当前不是玩家回合，则忽略
+            if (gameState[clickedCellIndex] !== "" || !gameActive || currentPlayer !== "X") {
+                return;
+            }
+
+            // 玩家落子
+            handlePlayerMove(clickedCell, clickedCellIndex);
+            
+            // 检查玩家是否获胜
+            if (checkWin(gameState, "X")) {
+                endGame("win");
+            } else if (checkDraw(gameState)) {
+                endGame("draw");
+            } else {
+                // 切换到AI回合
+                currentPlayer = aiPlayer;
+                updateStatusDisplay();
+                // 模拟思考延迟
+                setTimeout(handleAiMove, 500); 
+            }
+        }
+
+        // 玩家落子逻辑
+        function handlePlayerMove(cell, index) {
+            gameState[index] = "X";
+            cell.innerText = "X";
+            cell.classList.add('x', 'taken', 'pop-in');
+        }
+
+        // AI 落子逻辑 (Minimax)
+        function handleAiMove() {
+            if (!gameActive) return;
+
+            // 1. 获取最佳移动位置
+            const bestMoveIndex = getBestMove(gameState);
+
+            // 2. 更新状态
+            gameState[bestMoveIndex] = "O";
+            const cell = document.querySelector(`.cell[data-index='${bestMoveIndex}']`);
+            cell.innerText = "O";
+            cell.classList.add('o', 'taken', 'pop-in');
+
+            // 3. 检查结果
+            if (checkWin(gameState, "O")) {
+                endGame("lose");
+            } else if (checkDraw(gameState)) {
+                endGame("draw");
+            } else {
+                // 切换回玩家
+                currentPlayer = "X";
+                updateStatusDisplay();
+            }
+        }
+
+        // ==================== AI 核心算法 ====================
+
+        function getBestMove(board) {
+            let bestScore = -Infinity;
+            let move;
+            
+            // 遍历所有空格子
+            for (let i = 0; i < 9; i++) {
+                if (board[i] === "") {
+                    board[i] = "O"; // 尝试下这一步
+                    let score = minimax(board, 0, false);
+                    board[i] = ""; // 回溯，撤销这一步
+                    
+                    if (score > bestScore) {
+                        bestScore = score;
+                        move = i;
+                    }
+                }
+            }
+            return move;
+        }
+
+        // Minimax 递归函数
+        function minimax(board, depth, isMaximizing) {
+            // 检查终端状态
+            if (checkWin(board, "O")) return 10 - depth; // AI 赢 (越快赢分越高)
+            if (checkWin(board, "X")) return depth - 10; // 玩家赢 (越慢输分越高，因为AI想拖延)
+            if (checkDraw(board)) return 0; // 平局
+
+            if (isMaximizing) {
+                // AI 的回合 (找最大分)
+                let bestScore = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === "") {
+                        board[i] = "O";
+                        let score = minimax(board, depth + 1, false);
+                        board[i] = "";
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                // 玩家的回合 (假设玩家也是完美的，找最小分)
+                let bestScore = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === "") {
+                        board[i] = "X";
+                        let score = minimax(board, depth + 1, true);
+                        board[i] = "";
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        // ==================== 辅助函数 ====================
+
+        function checkWin(board, player) {
+            return winningConditions.some(condition => {
+                return condition.every(index => {
+                    return board[index] === player;
+                });
+            });
+        }
+
+        function checkDraw(board) {
+            return board.every(cell => cell !== "");
+        }
+
+        function updateStatusDisplay() {
+            if (currentPlayer === "X") {
+                statusDisplay.innerText = "轮到你了 (X)";
+                statusDisplay.className = "status-badge turn-x";
+            } else {
+                statusDisplay.innerText = "AI 思考中 (O)...";
+                statusDisplay.className = "status-badge turn-o";
+            }
+        }
+
+        function endGame(result) {
+            gameActive = false;
+            let title = "";
+            let titleClass = "";
+
+            if (result === "win") {
+                title = "奇迹！你赢了！🎉";
+                titleClass = "win";
+                scores.X++;
+                scoreXEl.innerText = scores.X;
+            } else if (result === "lose") {
+                title = "你输了... AI 是无敌的 🤖";
+                titleClass = "lose";
+                scores.O++;
+                scoreOEl.innerText = scores.O;
+            } else {
+                title = "平局！势均力敌 🤝";
+                titleClass = "draw";
+                scores.Draw++;
+                scoreDrawEl.innerText = scores.Draw;
+            }
+
+            // 显示弹窗
+            resultMessage.innerText = title;
+            resultMessage.className = `result-title ${titleClass}`;
+            
+            // 延迟一点显示，让玩家看到最后一步
+            setTimeout(() => {
+                endModal.classList.add('active');
+            }, 500);
+        }
+
+        function handleRestartGame() {
+            gameActive = true;
+            currentPlayer = "X";
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            
+            statusDisplay.innerText = "轮到你了 (X)";
+            statusDisplay.className = "status-badge turn-x";
+            
+            cells.forEach(cell => {
+                cell.innerText = "";
+                cell.className = "cell"; // 移除 x, o, taken, pop-in
+            });
+
+            endModal.classList.remove('active');
+        }
+
+        // 启动游戏
+        init();
+    </script>
+</body>
+</html>

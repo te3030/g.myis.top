@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%232c3e50'/%3E%3Cpolygon points='38,30 70,50 38,70' fill='%23ffffff'/%3E%3Ccircle cx='72' cy='28' r='8' fill='%23e74c3c'/%3E%3Ccircle cx='72' cy='28' r='12' fill='none' stroke='%23e74c3c' stroke-width='2' opacity='0.4'/%3E%3C/svg%3E">
+    <title>FLV 播放器</title>
+    <script src="https://cdn.jsdelivr.net/npm/flv.js@1.6.2/dist/flv.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 10px;
+            color: #333;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+            padding: 20px;
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        h1 {
+            color: #4a5568;
+            margin-bottom: 18px;
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        
+        .url-input-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        
+        .url-input-container input {
+            flex: 1;
+            min-width: 260px;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px; /* 防止iOS自动缩放 */
+            transition: all 0.2s ease;
+            outline: none;
+            background: #f8fafc;
+            line-height: 1.4;
+        }
+        
+        .url-input-container input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            background: white;
+        }
+        
+        .url-input-container input::placeholder {
+            color: #a0aec0;
+            font-size: 16px;
+        }
+        
+        .url-input-container button {
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            box-shadow: 0 3px 5px rgba(102, 126, 234, 0.3);
+            min-width: 110px;
+            touch-action: manipulation;
+            -webkit-appearance: none;
+        }
+        
+        .url-input-container button:hover,
+        .url-input-container button:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 10px rgba(102, 126, 234, 0.4);
+            outline: none;
+        }
+        
+        .url-input-container button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 3px rgba(102, 126, 234, 0.3);
+        }
+        
+        .video-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: #000;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 100vw;
+        }
+        
+        #videoElement {
+            width: 100%;
+            height: auto;
+            display: block;
+            max-height: 70vh;
+        }
+        
+        .instructions {
+            margin-top: 16px;
+            color: #718096;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 0 8px;
+        }
+        
+        .instructions strong {
+            color: #4a5568;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+                margin: 8px;
+                border-radius: 14px;
+            }
+            
+            .url-input-container {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .url-input-container input {
+                min-width: 100%;
+                padding: 14px;
+            }
+            
+            h1 {
+                font-size: 20px;
+                margin-bottom: 16px;
+            }
+            
+            .instructions {
+                font-size: 12px;
+                margin-top: 14px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+            
+            .container {
+                padding: 14px;
+                margin: 6px;
+                border-radius: 12px;
+            }
+            
+            .url-input-container button {
+                width: 100%;
+                padding: 14px;
+                font-size: 17px;
+            }
+            
+            h1 {
+                font-size: 19px;
+            }
+            
+            #videoElement {
+                max-height: 60vh;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 360px) {
+            .container {
+                padding: 12px;
+                margin: 4px;
+            }
+            
+            .url-input-container input {
+                font-size: 17px;
+                padding: 13px;
+            }
+            
+            .instructions {
+                font-size: 11px;
+            }
+        }
+        
+        /* 横屏模式优化 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #videoElement {
+                max-height: 40vh;
+            }
+            
+            .container {
+                margin-top: 10px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>FLV 直播流播放器</h1>
+        <div class="url-input-container">
+            <input type="text" id="urlInput" placeholder="请输入FLV流地址（支持抖音、快手等直播流）" autocomplete="off">
+            <button onclick="loadVideo()">播放</button>
+        </div>
+        <div class="video-wrapper">
+            <video id="videoElement" controls playsinline webkit-playsinline x5-playsinline></video>
+        </div>
+        <div class="instructions">
+            <p><strong>使用说明：</strong>输入FLV格式的直播流地址即可播放。页面会自动保存URL到浏览器地址栏，刷新后仍可继续播放。</p>
+        </div>
+    </div>
+
+    <script>
+        // Base64编码函数
+        function btoaUnicode(str) {
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                return String.fromCharCode('0x' + p1);
+            }));
+        }
+
+        // Base64解码函数
+        function atobUnicode(str) {
+            return decodeURIComponent(Array.prototype.map.call(atob(str), function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
+        // 从URL参数加载视频
+        function loadVideoFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            let videoUrl = null;
+            
+            // 首先尝试从vid参数获取（base64编码的URL）
+            const vid = urlParams.get('vid');
+            if (vid) {
+                try {
+                    videoUrl = atobUnicode(vid);
+                } catch (e) {
+                    console.error('Base64解码失败:', e);
+                }
+            }
+            
+            // 如果vid不存在或解码失败，尝试从url参数获取
+            if (!videoUrl) {
+                videoUrl = urlParams.get('url');
+            }
+
+            if (videoUrl) {
+                document.getElementById('urlInput').value = videoUrl;
+                playVideo(videoUrl);
+            }
+        }
+
+        // 播放视频函数
+        function playVideo(url) {
+            if (!url) {
+                alert("请输入有效的FLV流地址");
+                return;
+            }
+
+            // 更新URL参数，将当前URL编码为base64作为vid
+            const encodedUrl = btoaUnicode(url);
+            const newUrl = `${window.location.origin}${window.location.pathname}?vid=${encodedUrl}`;
+            window.history.replaceState({}, '', newUrl);
+
+            if (flvjs.isSupported()) {
+                var videoElement = document.getElementById('videoElement');
+                
+                // 如果已有播放器，先销毁
+                if (window.flvPlayer) {
+                    window.flvPlayer.destroy();
+                }
+                
+                window.flvPlayer = flvjs.createPlayer({
+                    type: 'flv',
+                    isLive: true,
+                    url: url
+                });
+                window.flvPlayer.attachMediaElement(videoElement);
+                window.flvPlayer.load();
+
+                // 处理自动播放受阻的情况
+                var playPromise = window.flvPlayer.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn("自动播放受阻，需用户手动点击播放", error);
+                        // 移动端友好提示
+                        if (/Mobi|Android/i.test(navigator.userAgent)) {
+                            showMobilePlayHint();
+                        }
+                    });
+                }
+            }
+        }
+
+        // 显示移动端播放提示
+        function showMobilePlayHint() {
+            const hint = document.createElement('div');
+            hint.innerHTML = '<div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); color: white; padding: 12px 20px; border-radius: 8px; font-size: 14px; z-index: 1000;">请点击播放器中的播放按钮</div>';
+            document.body.appendChild(hint);
+            
+            setTimeout(() => {
+                if (hint.parentNode) {
+                    hint.parentNode.removeChild(hint);
+                }
+            }, 3000);
+        }
+
+        // 加载视频按钮点击事件
+        function loadVideo() {
+            const url = document.getElementById('urlInput').value.trim();
+            playVideo(url);
+        }
+
+        // 页面加载时自动尝试从URL参数加载视频
+        window.addEventListener('DOMContentLoaded', function() {
+            loadVideoFromUrl();
+        });
+
+        // 移动端触摸优化
+        document.addEventListener('touchstart', function() {}, true);
+    </script>
+</body>
+
+</html>
